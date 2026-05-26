@@ -510,7 +510,7 @@ const CHECKS = {
     { id:'pc6', ca:'Crear carpetes D:\\DATABASE, INSTAL\\VB, PLC, DATA', en:'Create folders D:\\DATABASE, INSTAL\\VB, PLC, DATA' },
     { id:'pc7', ca:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / GW: 192.168.250.254', en:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / Gateway: 192.168.250.254' },
     { id:'pc8', ca:'IP targeta extra: automàtica', en:'Extra card IP: automatic' },
-    { id:'pc9', ca:'COM2 = Transfer, COM3 = Individual detector', en:'COM ports set: COM2-Transfer, COM3-Individual detector' },
+    { id:'pc9', ca:'COMs: Transfer / Individual detector', en:'COM ports: Transfer / Individual detector', special:'com_ports' },
     { id:'pc10', ca:'Calibrar pantalla tàctil', en:'Touch screen calibration done' },
     { id:'pc11', ca:'Conectar SAI i configurar paràmetres apagat', en:'UPS connected and shutdown parameters configured' },
     { id:'pc12', ca:'Canviar configuració regional (país client)', en:'Regional settings changed to customer country', special:'regional' },
@@ -762,6 +762,27 @@ function renderChecks(containerId, items) {
             </select>
             <input type="text" id="device-name" placeholder="Device name" onclick="event.stopPropagation()"
               style="flex:2;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'com_ports') {
+      const comOpts = '<option value="">COM...</option><option>COM1</option><option>COM2</option><option>COM3</option><option>COM4</option><option>COM5</option>';
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--c-text-secondary);white-space:nowrap">Transfer:</span>
+            <select id="com-transfer" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;min-width:80px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              ${comOpts}
+            </select>
+            <span style="font-size:12px;color:var(--c-text-secondary);white-space:nowrap">Individual:</span>
+            <select id="com-individual" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;min-width:80px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              ${comOpts}
+            </select>
           </div>
         </div>`;
       div.addEventListener('click', () => toggleCheck(item.id));
@@ -1767,6 +1788,8 @@ function collectData() {
     pc_serial: g('pc-serial'),
     pc_model: g('pc-model'),
     pc_tv_id: g('pc-tv-id'),
+    com_transfer: (document.getElementById('com-transfer')||{}).value||'',
+    com_individual: (document.getElementById('com-individual')||{}).value||'',
     pc_tv_pass: g('pc-tv-pass'),
     pc_keyboard: (document.getElementById('keyboard-select')||{}).value||'',
     pc_ram: (document.getElementById('ram-select')||{}).value||'',
@@ -1819,6 +1842,8 @@ function shareFile() {
       'TRANSPORT': d.transport, 'DONE BY': d.doneby,
       'PC SERIAL Nº': d.pc_serial, 'PC MODEL': d.pc_model,
       'ID TEAM VIEWER': d.pc_tv_id,
+    'COM TRANSFER': d.com_transfer,
+    'COM INDIVIDUAL': d.com_individual,
     'PASSWORD TEAM VIEWER': d.pc_tv_pass,
     'KEYBOARD LANGUAGE': d.pc_keyboard,
     'RAM': d.pc_ram,
@@ -1939,6 +1964,8 @@ function exportExcel() {
     'PC SERIAL Nº': d.pc_serial,
     'PC MODEL': d.pc_model,
     'ID TEAM VIEWER': d.pc_tv_id,
+    'COM TRANSFER': d.com_transfer,
+    'COM INDIVIDUAL': d.com_individual,
     'PASSWORD TEAM VIEWER': d.pc_tv_pass,
     'KEYBOARD LANGUAGE': d.pc_keyboard,
     'RAM': d.pc_ram,
