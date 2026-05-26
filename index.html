@@ -247,6 +247,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <label>Done by</label>
         <input type="text" id="f-doneby" placeholder="Technician">
       </div>
+      <div class="info-field">
+        <label>Verified by</label>
+        <input type="text" id="f-verifiedby" placeholder="Technician">
+      </div>
       <div class="info-field full">
         <label>Country</label>
         <input type="text" id="f-country" placeholder="Country">
@@ -285,6 +289,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <div class="ocr-field">
           <label>ID Team Viewer</label>
           <input type="text" id="pc-tv-id">
+        </div>
+        <div class="ocr-field">
+          <label>Password Team Viewer</label>
+          <select id="pc-tv-pass" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>Electrojet</option>
+            <option>Electrojet6195</option>
+          </select>
         </div>
         <div class="ocr-field">
           <label>Version — ROV</label>
@@ -375,10 +387,76 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <h3>Motor references</h3>
     <div class="info-grid">
       <div class="info-field full"><label>M1 motor model</label><input type="text" id="motor-m1"></div>
-      <div class="info-field full"><label>M2 motor model</label><input type="text" id="motor-m2"></div>
+      <div class="info-field full">
+        <label>M2 motor type</label>
+        <select id="motor-m2" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+          <option value="">Select...</option>
+          <option>PT1K+2PTC</option>
+          <option>KTY83</option>
+        </select>
+      </div>
       <div class="info-field full"><label>M4 motor model</label><input type="text" id="motor-m4"></div>
       <div class="info-field full"><label>M9 motor model</label><input type="text" id="motor-m9"></div>
       <div class="info-field full"><label>Reductor</label><input type="text" id="motor-reductor"></div>
+    </div>
+  </div>
+
+  <div class="info-card" style="margin-top:8px">
+    <h3>Individual breakage sensors</h3>
+    <div class="info-grid">
+      <div class="info-field full">
+        <label>Sensor version</label>
+        <select id="ib-sensor-ver" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)" onchange="document.getElementById('ib-sensor-other-div').style.display=this.value==='Altres'?'block':'none'">
+          <option value="">Select...</option>
+          <option>L3</option>
+          <option>Altres</option>
+        </select>
+      </div>
+      <div class="info-field full" id="ib-sensor-other-div" style="display:none">
+        <label>Specify sensor version</label>
+        <input type="text" id="ib-sensor-other" placeholder="Especificar versió">
+      </div>
+      <div class="info-field full"><label>Central device version</label><input type="text" id="ib-central-ver" placeholder="Versió dispositiu central"></div>
+      <div class="info-field full"><label>Central device serial Nº</label><input type="text" id="ib-central-sn" placeholder="Nº sèrie dispositiu central"></div>
+      <div class="info-field full"><label>Intermediate module version</label><input type="text" id="ib-module-ver" placeholder="Versió mòdul intermig"></div>
+    </div>
+  </div>
+
+  <div class="info-card" style="margin-top:8px">
+    <h3>Electrical components</h3>
+    <div class="info-grid">
+      <div class="info-field full">
+        <label>BQ13 / BQ14 photocell type</label>
+        <select id="bq-type" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)" onchange="document.getElementById('bq-other-div').style.display=this.value==='Altres'?'block':'none'">
+          <option value="">Select...</option>
+          <option>Sick WS_WE</option>
+          <option>Sick HS18</option>
+          <option>Banner</option>
+          <option>Leuze</option>
+          <option>Altres</option>
+        </select>
+      </div>
+      <div class="info-field full" id="bq-other-div" style="display:none">
+        <label>Specify BQ type</label>
+        <input type="text" id="bq-other" placeholder="Especificar tipus">
+      </div>
+      <div class="info-field full">
+        <label>RC version (K2)</label>
+        <select id="rc-k2" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+          <option value="">Select...</option>
+          <option>23050 (original)</option>
+          <option>23022 (nova versió)</option>
+        </select>
+      </div>
+      <div class="info-field full">
+        <label>Resistència frenada</label>
+        <select id="brake-res" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+          <option value="">Select...</option>
+          <option>7.5 Ohm</option>
+          <option>15 Ohm</option>
+          <option>30 Ohm</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -426,31 +504,33 @@ const CHECKS = {
   pc: [
     { id:'pc1', ca:'Comprovar llengua O.S. (Windows): ENGLISH UK', en:'OS language: English (United Kingdom)' },
     { id:'pc2', ca:'Llengua menús: ENGLISH UK', en:'Menu language: English (United Kingdom)' },
-    { id:'pc3', ca:'RAM Cervoz 8GB instal·lada', en:'RAM Cervoz 8GB installed' },
+    { id:'pc3', ca:'RAM Cervoz instal·lada', en:'RAM Cervoz installed', special:'ram' },
     { id:'pc4', ca:'Llicència CX-ONE (Omron)', en:'CX-ONE (Omron) license' },
-    { id:'pc5', ca:'Windows 10 — Device Name: PC-CONTROL-101', en:'Windows 10 device name: PC-CONTROL-101' },
+    { id:'pc5', ca:'Windows — Device Name', en:'Windows version and device name', special:'windows' },
     { id:'pc6', ca:'Crear carpetes D:\\DATABASE, INSTAL\\VB, PLC, DATA', en:'Create folders D:\\DATABASE, INSTAL\\VB, PLC, DATA' },
-    { id:'pc7', ca:'IP Local: 192.168.250.101 / Mask / DNS / GW', en:'IP Local/Mask/DNS/Gateway configured' },
+    { id:'pc7', ca:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / GW: 192.168.250.254', en:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / Gateway: 192.168.250.254' },
     { id:'pc8', ca:'IP targeta extra: automàtica', en:'Extra card IP: automatic' },
     { id:'pc9', ca:'COM2 = Transfer, COM3 = Individual detector', en:'COM ports set: COM2-Transfer, COM3-Individual detector' },
     { id:'pc10', ca:'Calibrar pantalla tàctil', en:'Touch screen calibration done' },
     { id:'pc11', ca:'Conectar SAI i configurar paràmetres apagat', en:'UPS connected and shutdown parameters configured' },
     { id:'pc12', ca:'Canviar configuració regional (país client)', en:'Regional settings changed to customer country', special:'regional' },
-    { id:'pc13', ca:'Comprovar idioma teclat', en:'Keyboard language checked' },
+    { id:'pc13', ca:'Comprovar idioma teclat', en:'Keyboard language checked', special:'keyboard' },
     { id:'pc14', ca:'Verificar dades client, IP i fons pantalla a escriptori', en:'Customer data, IP and wallpaper visible on desktop' },
     { id:'pc15', ca:'Activar Visual Studio Community 2019', en:'Visual Studio Community 2019 activated' },
+    { id:'pc15b', ca:'Carregar tots els programes màquina. Accés directe VB a escriptori i inici', en:'Load all machine/installation programs. VB shortcut to Desktop and Startup' },
     { id:'pc16', ca:'Treure actualitzacions Windows 10 versió 101A (2 discs)', en:'Windows 10 updates removed v101A (both hard drives)' },
     { id:'pc17', ca:'Crear imatge de HD1 a HD2', en:'Image created from HD1 to HD2' },
     { id:'pc18', ca:'Enganxar etiquetes SAI', en:'UPS stickers applied' },
-    { id:'pc19', ca:'Comprova DB: Device Value = Factory Settings Value', en:'DB check: Device Value matches Factory Settings Value' },
+    { id:'pc19', ca:'Treure i tornar corrent → Comprova DB: Device Value = Factory Settings Value', en:'Switch off/on → DB check: Device Value matches Factory Settings Value' },
     { id:'pc20', ca:'Fer fotos: nameplate, panell elèctric, PC darrere, pusher', en:'Photos taken: nameplate, electrical panel, PC back, pusher' },
     { id:'pc21', ca:'Comprovar nivell frame / pantalla vidre (LVDS no pinçat)', en:'Frame level / glass screen checked (LVDS not crushed)' },
   ],
   rf: [
     { id:'rf1', ca:'Tots els cargols collats (inclús els no usats)', en:'All screws tightened (including unused)' },
-    { id:'rf2', ca:'Cables a bobines relés A1-A2 (OMRON/ALTRES)', en:'Relay bobbins A1-A2 cables (OMRON/OTHER)' },
+    { id:'rf2', ca:'Cables a bobines relés A1-A2', en:'Relay bobbins A1-A2 cables', special:'relay_type' },
     { id:'rf3', ca:'Bateries connectades, font amb suport i etiqueta', en:'Batteries connected, SMPS with support and label' },
-    { id:'rf4', ca:'Fusibles instal·lats (gG, 5x20mm)', en:'All fuses installed (gG, 5x20mm)' },
+    { id:'rf4', ca:'Fusibles instal·lats (gG, gR, 5x20mm)', en:'All fuses installed (gG, gR, 5x20mm)' },
+    { id:'rf4b', ca:'Cables que van al QG2 (potència) a la sortida del KG. ADR & ADR+', en:'Cables to QG2 (power) at output of KG. ADR & ADR+' },
     { id:'rf5', ca:'Inverters: UG+→Marró, UG-→Blau', en:'Inverters: UG+→Brown, UG-→Blue' },
     { id:'rf6', ca:'Tèrmics motors ajustats Q10/9.5; Q11/8; QM/6; Q13/1.15', en:'Motor thermals adjusted Q10/9.5; Q11/8; QM/6; Q13/1.15' },
     { id:'rf7', ca:'Tots els cables màniga amb brida identificació', en:'All sleeve cables have identification clip' },
@@ -464,7 +544,7 @@ const CHECKS = {
     { id:'rf15', ca:'Semàfor instal·lat i comprovat. Tipus: NO LED / LED', en:'Tower light installed and checked. Type: NO LED / LED' },
     { id:'rf16', ca:'Verificar Energy Kit SI/NO i configuració 3PBW/100/5/100', en:'Energy kit check (YES/NO) and config 3PBW/100/5/100' },
     { id:'rf17', ca:'Comprovar condensadors connector X5 (1r i últim driver)', en:'Condensers at connector X5 first and last driver (ADR/ADR+)' },
-    { id:'rf18', ca:'RC connectat a K2 i KG; filtre en K1 i K2', en:'RC connected to K2/KG; coil filter on K1 and K2' },
+    { id:'rf18', ca:'RC connectat a K2 i KG; filtre en K1 i K2', en:'RC connected to K2/KG; coil filter on K1 and K2', special:'rc_k2' },
     { id:'rf19', ca:'Verificar voltatge fàbrica igual al transformador', en:'Mill voltage matches transformer (380/400/415/440/460V)' },
     { id:'rf20', ca:'Ajustar font: 24V G3 / 27V G1 / 13.8V G4 / 12V G5 / 28.5V G2', en:'Adjust sources: 24V G3/27V G1/13.8V G4/12V G5/28.5V G2' },
     { id:'rf21', ca:'Comprovar parada mòduls de seguretat', en:'Safety modules stoppage checked' },
@@ -477,6 +557,30 @@ const CHECKS = {
     { id:'rf28', ca:'Esquemes (dossiers porta-papers) i bossa catàlegs', en:'Electrical drawings and catalogues in cabinet door' },
     { id:'rf29', ca:'Cable cable cadena fixada per la part superior', en:'Cable chain fixed on top side' },
     { id:'rf30', ca:'Tapa gran superior testera', en:'Big cover top side panel board' },
+    { id:'rf31', ca:'Comprovar doble càmera parada: allargís, part posterior porta', en:'Check double chamber stopped: extension cable, back door (ADR/ADR+)' },
+    { id:'rf32', ca:'Comprovar que els drivers estan mecanitzats i sense ventilador posterior', en:'Check driver cover has been cut and backside fan removed (ADR/ADR+)' },
+    { id:'rf33', ca:'Puent seguretat portes (BQS1) i fotocèl·lula collada (AF)', en:'Door safety bridge (BQS1) and photocell well screwed (AF only)' },
+    { id:'rf34', ca:'Comprovar cable A connexions i connectors marcats + allargís S11 (AF)', en:'Check cable A connections correctly done and connectors marked + S11 extension (AF)' },
+    { id:'rf35', ca:'Comprovar cable B connexions i connectors marcats (ADR/ADR+)', en:'Check cable B connections correctly done and connectors marked (ADR/ADR+)' },
+    { id:'rf36', ca:'Comprovar cable C sèrie polsadors i colors fils', en:'Check cable C series of pushers and wire colours' },
+    { id:'rf37', ca:'Comprovar cable D connectat i marcat (AF)', en:'Check cable D correctly connected and marked (AF only)' },
+    { id:'rf38', ca:'Comprovar cable E connexions i connectors marcats', en:'Check cable E connections correctly done and connectors marked' },
+    { id:'rf39', ca:'Comprovar cable F connexions i connectors marcats (ADR/ADR+)', en:'Check cable F connections correctly done and connectors marked (ADR/ADR+)' },
+    { id:'rf40', ca:'Comprovar cable J mascle-femella i marcat', en:'Check cable J male at one end, nuts at other end, marked' },
+    { id:'rf41', ca:'Comprovar cable L connectat i marcat (ADR/ADR+)', en:'Check cable L correctly connected and marked (ADR/ADR+)' },
+    { id:'rf42', ca:'Comprovar cable BQ122-B connectat, marcat i collat (ADR/ADR+)', en:'Check cable BQ122-B connected, marked and fixed (ADR/ADR+)' },
+    { id:'rf43', ca:'Comprovar cable BQ13(R)-14(E) connectat, marcat. Verificar voltatge', en:'Check cable BQ13(R)-14(E) connected, marked, fixed. Check voltage with multimeter' },
+    { id:'rf44', ca:'Comprovar cable BQ15 correctament marcat (ADR/ADR+)', en:'Check cable BQ15 correctly marked (ADR/ADR+)' },
+    { id:'rf45', ca:'Comprovar cable M13/M14/M15 correctament marcats', en:'Check cable M13/M14/M15 correctly marked' },
+    { id:'rf46', ca:'Cable comunicació PAR/POS marcat pels dos extrems PC→PLC (ADR/ADR+)', en:'Communication cable PAR/POS marked at both ends PC→PLC (ADR/ADR+)' },
+    { id:'rf47', ca:'Comprovar cable 24VDC (transfer) ADR/ADR+', en:'Check 24VDC cable (transfer) ADR/ADR+' },
+    { id:'rf48', ca:'Comprovar cable 380VAC connectat i marcat (ADR/ADR+)', en:'Check cable 380VAC connected and marked (ADR/ADR+)' },
+    { id:'rf49', ca:'Verificar funcionament QGR i KGR netejador', en:'Check QGR and KGR signals and cleaner discharge to pneumafil' },
+    { id:'rf50', ca:'Salida soplado neumafil, tubs airflex amb brides', en:'Pneumafil with airflex tube and ties' },
+    { id:'rf51', ca:'Fotos primer quadre de cada client', en:'Photos taken from 1st customer panel' },
+    { id:'rf52', ca:'Sensors vermells: voltatge font G2 ajustat al màxim (28VDC)', en:'Red sensors: G2 output voltage adjusted to maximum (28VDC)' },
+    { id:'rf53', ca:'Provar funcionament detectors individuals / BQ0 al mòdul', en:'Check individual breakage detectors / BQ0 erected on module if not installed' },
+    { id:'rf54', ca:'Caixa amb detectors de rotura individual', en:'Box with individual breakage detectors' },
   ],
   rfscreen: [
     { id:'rfs1', ca:'Número de husos a pantalla "Herramientas"', en:'Spindles number on Tools screen' },
@@ -494,9 +598,9 @@ const CHECKS = {
   trf: [
     { id:'t1', ca:'No queden contactes lliures (relés/contactors)', en:'No free contacts (relays/contactors)' },
     { id:'t2', ca:'Tots els cargols collats (inclús els no usats)', en:'All screws tightened (not used too)' },
-    { id:'t3', ca:'Cables bobines relés A1-A2 correctes. Tipus: OMRON/Altre', en:'Relay bobbins A1-A2 correct. Type: OMRON/OTHER' },
+    { id:'t3', ca:'Cables bobines relés A1-A2 correctes', en:'Relay bobbins A1-A2 correct. Type: OMRON/OTHER', special:'relay_type' },
     { id:'t4', ca:'Cables potència connectats correctament', en:'Power wires well connected' },
-    { id:'t5', ca:'Ferrita instal·lada. Model: Omron/Fuji', en:'Ferrite installed. Model: Omron/Fuji' },
+    { id:'t5', ca:'Ferrita instal·lada', en:'Ferrite installed. Model: Omron/Fuji', special:'ferrite' },
     { id:'t6', ca:'Fusibles posats (5x20mm) 4A', en:'Fuses inserted (5x20mm) 4A' },
     { id:'t7', ca:'Tèrmics motors corresponen i regulats', en:'MPCB well adjusted' },
     { id:'t8', ca:'Tots els cables amb brida identificació', en:'All cables with identification label' },
@@ -512,6 +616,14 @@ const CHECKS = {
     { id:'t18', ca:'Clau triangle a la porta', en:'Triangle key at door' },
     { id:'t19', ca:'Programa entrat al PLC i verificat amb tram proves', en:'Transfer program loaded to PLC. Trolley checking done' },
     { id:'t20', ca:'Comprovar si l\'autòmat té la bateria', en:'Check if PLC battery is installed' },
+    { id:'t21', ca:'Entrades PLC 1.04/1.05 (simple/doble/triple) segons número de pues', en:'PLC inputs 1.04/1.05 (simple/double/triple) as per spindles quantity' },
+    { id:'t22', ca:'Equips Lenze U1-U2 i brides cables potència i encoder marcats', en:'Lenze U1-U2 encoder and power cable clips identified' },
+    { id:'t23', ca:'Porta, botonera, triangles perill elèctric', en:'Door labels, pushers and electrical danger triangles' },
+    { id:'t24', ca:'Tots els elements dins quadre marcats. Placa E-Jet/Rieter també', en:'All devices in electrical cabinet marked. Machine nameplate E-Jet/Rieter as well' },
+    { id:'t25', ca:'Muntatge regles a la corba i manòmetre pressió d\'aire (ADR)', en:'Sections sticker at curve and air pressure manometer (ADR)' },
+    { id:'t26', ca:'Manòmetre pressió d\'aire (ADR+)', en:'Air pressure manometer (ADR+)' },
+    { id:'t27', ca:'Hi ha conjunts díodes a l\'allargís BQ211. LEUZE/SICK/BANNER', en:'Diodes connected to cable BQ211. LEUZE/SICK/BANNER' },
+    { id:'t28', ca:'Tub passa cables TAB enviat (ADR+)', en:'TAB cables tube sent (ADR+)' },
   ],
   trfcables: [
     { id:'tc1', ca:'Cable detectors posició tram interior connectat i marcat', en:'Interior carousel position detectors cable connected and marked' },
@@ -524,6 +636,9 @@ const CHECKS = {
     { id:'tc8', ca:'Cables detectors seguretat portes connectats i marcats', en:'Safety door cables marked and checked' },
     { id:'tc9', ca:'Cable llum alarma connectat i marcat', en:'Alarm sparkling light cable marked and checked' },
     { id:'tc10', ca:'Cables 380VAC / 220VAC / 24VDC marcats i connectats', en:'380VAC/220VAC/24VDC cables marked and connected' },
+    { id:'tc11', ca:'Cable fotocèl·lules i sensors rail TAB-TAC connectats i marcats. Verificar BQ209 (previ)', en:'Transport photocells and sensors cable marked and checked. Verify BQ209. LEUZE/SICK/BANNER' },
+    { id:'tc12', ca:'Cable comunicació TAB-TAC o DMI connectat i marcat', en:'Transport communication cable marked and checked. TAB-TAC or DMI' },
+    { id:'tc13', ca:'Cable motors M5-1 i M5-2 connectat (si hi va)', en:'M5-1 & M5-2 motor cable marked and checked (only if transfer controls transport motors)' },
   ],
   trfmech: [
     { id:'tm1', ca:'Portes tanquen correctament', en:'Doors adjusted and closing properly' },
@@ -534,6 +649,24 @@ const CHECKS = {
     { id:'tm6', ca:'Peça protecció encoder motor instal·lada', en:'Metal cover encoder protection installed' },
     { id:'tm7', ca:'Netejadora "belcro" amb motor, pinta, boca aspiració, tubs (ADR)', en:'Belcro cleaning system with motor, comb, vacuum (ADR)' },
     { id:'tm8', ca:'Detector BQ4 llarg a l\'extrem corba, BQ5 curt al vèrtex (ADR)', en:'Long BQ4 at outer vertex, short BQ5 at inner vertex (ADR)' },
+    { id:'tm9', ca:'Suports, cèl·lules BQ105-106, si doble BQ112-113 i suports miralls prop porta TRF (ADR)', en:'Photocells BQ105-106, if double BQ112-113 and mirror supports near TRF door (ADR)' },
+    { id:'tm10', ca:'Suports cèl·lules BQ005-006, si doble/triple BQ302-303, si triple BQ308-309 (ADR+)', en:'Supports and photocells BQ005-006, double/triple BQ302-303, triple BQ308-309 (ADR+)' },
+    { id:'tm11', ca:'BQ208-209-210-211-SCA-YVA(5)-YVDF(1)-YVTA(2) posats i marcats (ADR)', en:'Detectors BQ208-211-SCA and valves YVA(5)-YVDF(1)-YVTA(2) installed and marked (ADR)' },
+    { id:'tm12', ca:'BQ008-009-YV2-YV3 posats i marcats. Si doble: BQ108-109-YV4-YV5 (ADR+)', en:'BQ008-009-YV2(YVDF)-YV3(YVTA) installed. If double: BQ108-109-YV4-YV5 (ADR+)' },
+    { id:'tm13', ca:'Comprovar detectors BQ100 i BQ101 (ADR+)', en:'Check detectors BQ100 and BQ101 (ADR+)' },
+    { id:'tm14', ca:'Netejadora belcro amb motor i boca aspiració (ADR+)', en:'Belcro cleaning system with motor and vacuum system (ADR+)' },
+    { id:'tm15', ca:'Reductor M2 connectat amb roda motriu (ADR+)', en:'M2 reducer, motor and wheel fixed (ADR+)' },
+    { id:'tm16', ca:'Suports i cèl·lules BQ13(E)-BQ14(R) posats i marcats. LEUZE/SICK/BANNER', en:'BQ13(E)-BQ14(R) photocells and supports fixed and marked. LEUZE/SICK/BANNER' },
+    { id:'tm17', ca:'Pont fotocèl·lules BQ200-201 entregat. Si Plus: Simple BQ003-004, Doble +BQ300-301', en:'Photocells bracket BQ200-201. If Plus: Simple BQ003-004, Double +BQ300-301, Triple +BQ306-307' },
+    { id:'tm18', ca:'Detectors seguretat rail superior BDC DCA18/4629KS', en:'Top rail overpressure sensors BDC DCA18/4629KS' },
+    { id:'tm19', ca:'Caixa connexions ES-3-M', en:'Connection box ES-3-M' },
+    { id:'tm20', ca:'Fotocèl·lula tub previ + suport (si NO EJET transport, o EJET sentit OUT-IN)', en:'Previous tube photocell and support (if NO EJET transport or EJET direction OUT-IN)' },
+    { id:'tm21', ca:'Esquemes elèctrics (dossiers porta papers) i bossa catàlegs', en:'Electrical drawings and technical documentation in cabinet door' },
+    { id:'tm22', ca:'Marca encoder (Kubler/Wachendorf/Hohner)', en:'Encoder brand and type' },
+    { id:'tm23', ca:'Entregar si hi ha: Sac aspiració, Consola Lenze, Botonera manual', en:'Deliver if exists: Vacuum bag, Lenze keypad, Manual joystick' },
+    { id:'tm24', ca:'Pressostat ben ajustat i connectat. Tipus: Festo/Altre', en:'SPT connected and set. Type: Festo/Other' },
+    { id:'tm25', ca:'Model pneumàtica: Festo/Altre', en:'Pneumatic type: Festo/Other' },
+    { id:'tm26', ca:'Llum vermella parpellejant sobre la testera', en:'Sparkling red light on the cabinet' },
   ]
 };
 
@@ -573,7 +706,114 @@ function renderChecks(containerId, items) {
     const div = document.createElement('div');
     div.className = 'check-item';
     div.id = 'ci-' + item.id;
-    if (item.special === 'regional') {
+    if (item.special === 'keyboard') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="keyboard-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>ESP — Spanish</option>
+            <option>ENG — English (UK)</option>
+            <option>ENG — English (US)</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'ram') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="ram-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>8 GB</option>
+            <option>16 GB</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'windows') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <select id="windows-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">Windows...</option>
+              <option>Windows 10</option>
+              <option>Windows 11</option>
+            </select>
+            <input type="text" id="device-name" placeholder="Device name" onclick="event.stopPropagation()"
+              style="flex:2;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'relay_type') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <select id="relay-sel-${item.id}" onclick="event.stopPropagation()" onchange="document.getElementById('relay-other-${item.id}').style.display=this.value==='Altres'?'block':'none';event.stopPropagation()"
+              style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">Select...</option>
+              <option>OMRON</option>
+              <option>Altres</option>
+            </select>
+          </div>
+          <input type="text" id="relay-other-${item.id}" placeholder="Especificar tipus" onclick="event.stopPropagation()"
+            style="display:none;margin-top:4px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'ferrite') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="ferrite-sel" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>Omron</option>
+            <option>Fuji</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'rc_k2') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            <select id="rc-sel" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">RC versió...</option>
+              <option>23050 (original)</option>
+              <option>23022 (nova)</option>
+            </select>
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'regional') {
       div.innerHTML = `
         <div class="check-box">
           <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
@@ -1510,6 +1750,7 @@ function collectData() {
   return {
     // Machine info
     serial: g('f-serial'),
+    verifiedby: g('f-verifiedby'),
     customer: g('f-customer'),
     date: g('f-date'),
     order: g('f-order'),
@@ -1526,6 +1767,11 @@ function collectData() {
     pc_serial: g('pc-serial'),
     pc_model: g('pc-model'),
     pc_tv_id: g('pc-tv-id'),
+    pc_tv_pass: g('pc-tv-pass'),
+    pc_keyboard: (document.getElementById('keyboard-select')||{}).value||'',
+    pc_ram: (document.getElementById('ram-select')||{}).value||'',
+    pc_windows: (document.getElementById('windows-select')||{}).value||'',
+    pc_device_name: (document.getElementById('device-name')||{}).value||'',
     pc_vb_rov: g('pc-vb-rov'),
     pc_vb_cx: g('pc-vb-cx'),
     pc_vb_plc: g('pc-vb-plc'),
@@ -1533,6 +1779,16 @@ function collectData() {
     cx_license: [g('cx-b1'),g('cx-b2'),g('cx-b3'),g('cx-b4')].filter(Boolean).join('-'),
     // Motors
     motor_m1: g('motor-m1'),
+    motor_m2_type: g('motor-m2'),
+    ib_sensor_ver: (document.getElementById('ib-sensor-ver')||{}).value||'',
+    ib_sensor_other: g('ib-sensor-other'),
+    ib_central_ver: g('ib-central-ver'),
+    ib_central_sn: g('ib-central-sn'),
+    ib_module_ver: g('ib-module-ver'),
+    bq_type: (document.getElementById('bq-type')||{}).value||'',
+    bq_other: g('bq-other'),
+    rc_k2: (document.getElementById('rc-k2')||{}).value||'',
+    brake_res: (document.getElementById('brake-res')||{}).value||'',
     motor_m2: g('motor-m2'),
     motor_m4: g('motor-m4'),
     motor_m9: g('motor-m9'),
@@ -1555,13 +1811,19 @@ function shareFile() {
   try {
     const wb = XLSX.utils.book_new();
     const regRow = {
-      'SERIAL Nº': d.serial, 'CUSTOMER': d.customer, 'DATE': d.date,
+      'SERIAL Nº': d.serial,
+    'VERIFIED BY': d.verifiedby, 'CUSTOMER': d.customer, 'DATE': d.date,
       'ORDER Nº': d.order, 'COUNTRY': d.country, 'MACHINE TYPE': d.type,
       'NORMAL / PLUS': d.plus, 'SPINDLES NUMBER': d.spindles,
       'VOLTAGE': d.voltage, 'Hz': d.hz, 'TRF TYPE': d.trf,
       'TRANSPORT': d.transport, 'DONE BY': d.doneby,
       'PC SERIAL Nº': d.pc_serial, 'PC MODEL': d.pc_model,
       'ID TEAM VIEWER': d.pc_tv_id,
+    'PASSWORD TEAM VIEWER': d.pc_tv_pass,
+    'KEYBOARD LANGUAGE': d.pc_keyboard,
+    'RAM': d.pc_ram,
+    'WINDOWS VERSION': d.pc_windows,
+    'DEVICE NAME': d.pc_device_name,
       'VERSION ROV': d.pc_vb_rov, 'VERSION CX': d.pc_vb_cx,
       'VERSION PLC': d.pc_vb_plc, 'VERSION ENGINEER': d.pc_vb_eng,
       'LICENSE CX-ONE': d.cx_license, 'OBSERVATIONS': d.observations,
@@ -1677,12 +1939,25 @@ function exportExcel() {
     'PC SERIAL Nº': d.pc_serial,
     'PC MODEL': d.pc_model,
     'ID TEAM VIEWER': d.pc_tv_id,
+    'PASSWORD TEAM VIEWER': d.pc_tv_pass,
+    'KEYBOARD LANGUAGE': d.pc_keyboard,
+    'RAM': d.pc_ram,
+    'WINDOWS VERSION': d.pc_windows,
+    'DEVICE NAME': d.pc_device_name,
     'VB VERSION ROV': d.pc_vb_rov,
     'VB VERSION CX': d.pc_vb_cx,
     'VB VERSION PLC': d.pc_vb_plc,
     'VERSION ENGINEER': d.pc_vb_eng,
     'LICENSE CX-ONE': d.cx_license,
     'MOTOR M1': d.motor_m1,
+    'MOTOR M2 TYPE': d.motor_m2_type,
+    'IB SENSOR VERSION': d.ib_sensor_ver + (d.ib_sensor_other ? ' - '+d.ib_sensor_other : ''),
+    'IB CENTRAL VERSION': d.ib_central_ver,
+    'IB CENTRAL S/N': d.ib_central_sn,
+    'IB MODULE VERSION': d.ib_module_ver,
+    'BQ13/14 TYPE': d.bq_type + (d.bq_other ? ' - '+d.bq_other : ''),
+    'RC K2 VERSION': d.rc_k2,
+    'BRAKE RESISTANCE': d.brake_res,
     'MOTOR M2': d.motor_m2,
     'MOTOR M4': d.motor_m4,
     'MOTOR M9': d.motor_m9,
