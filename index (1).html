@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RF Checker">
+<title>Roving Frame Checker</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --c-primary: #185FA5;
+  --c-primary-light: #E6F1FB;
+  --c-success: #3B6D11;
+  --c-success-light: #EAF3DE;
+  --c-warning: #854F0B;
+  --c-warning-light: #FAEEDA;
+  --c-danger: #A32D2D;
+  --c-danger-light: #FCEBEB;
+  --c-border: rgba(0,0,0,0.12);
+  --c-border-strong: rgba(0,0,0,0.25);
+  --c-bg: #f5f5f0;
+  --c-card: #ffffff;
+  --c-text: #1a1a1a;
+  --c-text-secondary: #555;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-primary: #85B7EB;
+    --c-primary-light: #042C53;
+    --c-success-light: #173404;
+    --c-warning-light: #412402;
+    --c-border: rgba(255,255,255,0.12);
+    --c-border-strong: rgba(255,255,255,0.25);
+    --c-bg: #1a1a1a;
+    --c-card: #242424;
+    --c-text: #f0f0f0;
+    --c-text-secondary: #aaa;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--c-bg); color: var(--c-text); font-size: 15px; line-height: 1.5; padding-bottom: 100px; }
+
+/* TOP BAR */
+.topbar { background: var(--c-card); border-bottom: 0.5px solid var(--c-border); padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 10px; }
+.topbar-title { font-size: 17px; font-weight: 600; flex: 1; }
+.progress-pill { font-size: 12px; background: var(--c-primary-light); color: var(--c-primary); padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+
+/* SECTION TABS */
+.tabs { display: flex; background: var(--c-card); border-bottom: 0.5px solid var(--c-border); overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 1; min-width: 80px; padding: 12px 8px; text-align: center; font-size: 12px; font-weight: 500; color: var(--c-text-secondary); border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+.tab.active { color: var(--c-primary); border-bottom-color: var(--c-primary); }
+
+/* MACHINE INFO */
+.info-card { margin: 12px; background: var(--c-card); border-radius: var(--radius); border: 0.5px solid var(--c-border); padding: 14px; }
+.info-card h3 { font-size: 13px; color: var(--c-text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.info-field label { font-size: 11px; color: var(--c-text-secondary); display: block; margin-bottom: 3px; }
+.info-field input, .info-field select { width: 100%; border: 0.5px solid var(--c-border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 14px; background: var(--c-bg); color: var(--c-text); }
+.info-field.full { grid-column: 1 / -1; }
+
+/* SECTION CONTENT */
+.section-content { display: none; }
+.section-content.active { display: block; }
+
+/* CHECK GROUPS */
+.check-group { margin: 12px; }
+.check-group-title { font-size: 12px; color: var(--c-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; padding: 0 2px; }
+.check-list { background: var(--c-card); border-radius: var(--radius); border: 0.5px solid var(--c-border); overflow: hidden; }
+.check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-bottom: 0.5px solid var(--c-border); cursor: pointer; transition: background 0.15s; }
+.check-item:last-child { border-bottom: none; }
+.check-item:active { background: var(--c-bg); }
+.check-box { width: 22px; height: 22px; min-width: 22px; border-radius: 6px; border: 1.5px solid var(--c-border-strong); display: flex; align-items: center; justify-content: center; margin-top: 1px; transition: all 0.15s; }
+.check-item.checked .check-box { background: var(--c-success); border-color: var(--c-success); }
+.check-box svg { display: none; }
+.check-item.checked .check-box svg { display: block; }
+.check-text { flex: 1; font-size: 14px; line-height: 1.4; }
+.check-text .en { color: var(--c-text-secondary); font-size: 12px; margin-top: 2px; }
+
+/* OCR FIELD */
+.ocr-card { margin: 12px; background: var(--c-card); border-radius: var(--radius); border: 0.5px solid var(--c-border); overflow: hidden; }
+.ocr-card-header { padding: 12px 14px; border-bottom: 0.5px solid var(--c-border); display: flex; align-items: center; gap: 8px; }
+.ocr-card-header h3 { font-size: 14px; font-weight: 600; flex: 1; }
+.ocr-badge { font-size: 11px; background: var(--c-primary-light); color: var(--c-primary); padding: 3px 8px; border-radius: 20px; }
+.ocr-body { padding: 12px 14px; }
+.ocr-btn { width: 100%; padding: 12px; border: 1.5px dashed var(--c-border-strong); border-radius: var(--radius-sm); background: var(--c-bg); color: var(--c-primary); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; }
+.ocr-btn:active { opacity: 0.7; }
+.ocr-status { font-size: 12px; color: var(--c-text-secondary); text-align: center; margin-bottom: 10px; min-height: 18px; }
+.ocr-fields { display: flex; flex-direction: column; gap: 8px; }
+.ocr-field label { font-size: 11px; color: var(--c-text-secondary); display: block; margin-bottom: 3px; }
+.ocr-field input { width: 100%; border: 0.5px solid var(--c-border-strong); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 14px; background: var(--c-bg); color: var(--c-text); }
+.ocr-field input.filled { border-color: var(--c-success); }
+.hidden-input { display: none; }
+
+/* DRIVER TABLE */
+.driver-card { margin: 12px; background: var(--c-card); border-radius: var(--radius); border: 0.5px solid var(--c-border); overflow: hidden; }
+.driver-card-header { padding: 12px 14px; border-bottom: 0.5px solid var(--c-border); display: flex; align-items: center; gap: 8px; }
+.driver-card-header h3 { font-size: 14px; font-weight: 600; flex: 1; }
+.add-btn { padding: 6px 12px; background: var(--c-primary-light); color: var(--c-primary); border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; }
+.driver-entry { padding: 12px 14px; border-bottom: 0.5px solid var(--c-border); }
+.driver-entry:last-child { border-bottom: none; }
+.driver-entry-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.driver-num { font-size: 13px; font-weight: 600; color: var(--c-primary); }
+.del-btn { padding: 4px 8px; background: var(--c-danger-light); color: var(--c-danger); border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.driver-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.driver-field label { font-size: 11px; color: var(--c-text-secondary); display: block; margin-bottom: 3px; }
+.driver-field input { width: 100%; border: 0.5px solid var(--c-border-strong); border-radius: var(--radius-sm); padding: 7px 8px; font-size: 13px; background: var(--c-bg); color: var(--c-text); }
+.driver-field.full { grid-column: 1 / -1; }
+.driver-ocr-btn { margin-top: 8px; width: 100%; padding: 8px; border: 1px dashed var(--c-border-strong); border-radius: var(--radius-sm); background: transparent; color: var(--c-primary); font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* OBSERVATIONS */
+.obs-area { margin: 12px; background: var(--c-card); border-radius: var(--radius); border: 0.5px solid var(--c-border); padding: 12px 14px; }
+.obs-area label { font-size: 12px; color: var(--c-text-secondary); display: block; margin-bottom: 6px; }
+.obs-area textarea { width: 100%; border: 0.5px solid var(--c-border-strong); border-radius: var(--radius-sm); padding: 10px; font-size: 14px; background: var(--c-bg); color: var(--c-text); resize: vertical; min-height: 80px; font-family: inherit; }
+
+/* BOTTOM EXPORT BAR */
+.export-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--c-card); border-top: 0.5px solid var(--c-border); padding: 10px 12px; display: flex; gap: 8px; z-index: 100; }
+.export-btn { flex: 1; padding: 12px; border-radius: var(--radius-sm); border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+.export-btn.primary { background: var(--c-primary); color: white; }
+.export-btn.secondary { background: var(--c-primary-light); color: var(--c-primary); }
+.export-btn:active { opacity: 0.8; transform: scale(0.98); }
+
+/* SPINNER */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-10px); background: #222; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<input type="file" accept="image/*" capture="environment" class="hidden-input" id="global-file-input">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-title">RF Checker</div>
+  <div class="progress-pill" id="progress-label">0 / 0</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="info" onclick="showTab('info')">ℹ️ Info</div>
+  <div class="tab" data-tab="pc" onclick="showTab('pc')">💻 PC</div>
+  <div class="tab" data-tab="rf" onclick="showTab('rf')">⚙️ Roving Frame</div>
+  <div class="tab" data-tab="trf" onclick="showTab('trf')">🔄 Transfer</div>
+</div>
+
+<!-- ===== TAB: INFO ===== -->
+<div class="section-content active" id="tab-info">
+  <div class="ocr-card" style="margin:12px">
+    <div class="ocr-card-header">
+      <h3>Order document (FILSPEC)</h3>
+      <span class="ocr-badge">OCR</span>
+    </div>
+    <div class="ocr-body">
+      <button class="ocr-btn" onclick="triggerOCR('order-doc')">
+        📷 Photo order doc → auto-fill info
+      </button>
+      <div class="ocr-status" id="ocr-status-order-doc"></div>
+    </div>
+  </div>
+  <div class="info-card">
+    <h3>Machine information</h3>
+    <div class="info-grid">
+      <div class="info-field">
+        <label>Serial Nº</label>
+        <input type="text" id="f-serial" placeholder="0000">
+      </div>
+      <div class="info-field">
+        <label>Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="info-field full">
+        <label>Customer</label>
+        <input type="text" id="f-customer" placeholder="Customer name">
+      </div>
+      <div class="info-field">
+        <label>Order Nº</label>
+        <input type="text" id="f-order">
+      </div>
+      <div class="info-field">
+        <label>Machine type</label>
+        <select id="f-type">
+          <option value="">Select...</option>
+          <option>ADR</option>
+          <option>ADR PLUS</option>
+          <option>AF</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>Normal / Plus</label>
+        <select id="f-plus">
+          <option value="">Select...</option>
+          <option>Normal</option>
+          <option>Plus</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>Spindles</label>
+        <select id="f-spindles">
+          <option value="">Select...</option>
+          <option>64</option><option>80</option><option>96</option>
+          <option>112</option><option>128</option><option>144</option>
+          <option>160</option><option>192</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>Voltage</label>
+        <select id="f-voltage">
+          <option value="">Select...</option>
+          <option>380</option><option>400</option><option>415</option>
+          <option>440</option><option>460</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>Hz</label>
+        <select id="f-hz">
+          <option value="">Select...</option>
+          <option>50</option><option>60</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>TRF type</label>
+        <select id="f-trf">
+          <option value="">Select...</option>
+          <option>Simple</option><option>Double</option><option>Triple</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>Transport</label>
+        <select id="f-transport">
+          <option value="">Select...</option>
+          <option>EJET TAB</option><option>EJET TAC</option>
+          <option>DMI</option><option>None</option>
+        </select>
+      </div>
+      <div class="info-field">
+        <label>Done by</label>
+        <input type="text" id="f-doneby" placeholder="Technician">
+      </div>
+      <div class="info-field">
+        <label>Verified by</label>
+        <input type="text" id="f-verifiedby" placeholder="Technician">
+      </div>
+      <div class="info-field full">
+        <label>Country</label>
+        <input type="text" id="f-country" placeholder="Country">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB: PC ===== -->
+<div class="section-content" id="tab-pc">
+
+  <!-- OCR: PC Nameplate -->
+  <div class="ocr-card">
+    <div class="ocr-card-header">
+      <h3>PC Irontech — Nameplate</h3>
+      <span class="ocr-badge">OCR</span>
+    </div>
+    <div class="ocr-body">
+      <button class="ocr-btn" onclick="triggerOCR('pc-nameplate')">
+        📷 Photo nameplate → auto-fill
+      </button>
+      <div class="ocr-status" id="ocr-status-pc-nameplate"></div>
+      <div class="ocr-fields">
+        <div class="ocr-field">
+          <label>PC Serial Nº</label>
+          <input type="text" id="pc-serial" placeholder="e.g. 250401441">
+        </div>
+        <div class="ocr-field">
+          <label>PC Model</label>
+          <input type="text" id="pc-model" placeholder="e.g. IRTOPC150SAR5XA-26NJ">
+        </div>
+        
+        
+        
+        
+        <div class="ocr-field">
+          <label>ID Team Viewer</label>
+          <input type="text" id="pc-tv-id">
+        </div>
+        <div class="ocr-field">
+          <label>Password Team Viewer</label>
+          <select id="pc-tv-pass" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>Electrojet</option>
+            <option>Electrojet6195</option>
+          </select>
+        </div>
+        <div class="ocr-field">
+          <label>Version — ROV</label>
+          <input type="text" id="pc-vb-rov">
+        </div>
+        <div class="ocr-field">
+          <label>Version — CX</label>
+          <input type="text" id="pc-vb-cx">
+        </div>
+        <div class="ocr-field">
+          <label>Version — PLC</label>
+          <input type="text" id="pc-vb-plc">
+        </div>
+        <div class="ocr-field">
+          <label>Version — Engineer</label>
+          <input type="text" id="pc-vb-eng">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- License CX-ONE -->
+  <div class="ocr-card" style="margin:0 12px 0 12px">
+    <div class="ocr-card-header">
+      <h3>License CX-ONE (Omron)</h3>
+      <span class="ocr-badge">OCR</span>
+    </div>
+    <div class="ocr-body">
+      <button class="ocr-btn" onclick="triggerOCR('cx-license')">
+        📷 Photo license → auto-fill
+      </button>
+      <div class="ocr-status" id="ocr-status-cx-license"></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="cx-b1" maxlength="4" placeholder="0000" oninput="autoTabLicense(this,'cx-b2')" style="width:68px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px;font-size:16px;text-align:center;background:var(--c-bg);color:var(--c-text);font-family:monospace;letter-spacing:3px">
+        <span style="color:var(--c-text-secondary);font-weight:600">–</span>
+        <input type="text" id="cx-b2" maxlength="4" placeholder="0000" oninput="autoTabLicense(this,'cx-b3')" style="width:68px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px;font-size:16px;text-align:center;background:var(--c-bg);color:var(--c-text);font-family:monospace;letter-spacing:3px">
+        <span style="color:var(--c-text-secondary);font-weight:600">–</span>
+        <input type="text" id="cx-b3" maxlength="4" placeholder="0000" oninput="autoTabLicense(this,'cx-b4')" style="width:68px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px;font-size:16px;text-align:center;background:var(--c-bg);color:var(--c-text);font-family:monospace;letter-spacing:3px">
+        <span style="color:var(--c-text-secondary);font-weight:600">–</span>
+        <input type="text" id="cx-b4" maxlength="4" placeholder="0000" style="width:68px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px;font-size:16px;text-align:center;background:var(--c-bg);color:var(--c-text);font-family:monospace;letter-spacing:3px">
+      </div>
+    </div>
+  </div>
+
+  <!-- PC Checks -->
+  <div class="check-group">
+    <div class="check-group-title">PC verifications</div>
+    <div class="check-list" id="checks-pc"></div>
+  </div>
+
+  <!-- Grease Pumps -->
+  <div class="driver-card" style="margin-top:8px">
+    <div class="driver-card-header">
+      <h3>Grease pumps</h3>
+      <button class="add-btn" onclick="addPump()">+ Add</button>
+    </div>
+    <div id="pumps-list"></div>
+  </div>
+
+</div>
+
+<!-- ===== TAB: ROVING FRAME ===== -->
+<div class="section-content" id="tab-rf">
+
+  <!-- Lenze Drivers -->
+  <div class="driver-card">
+    <div class="driver-card-header">
+      <h3>Lenze drivers / inverters</h3>
+      <button class="add-btn" onclick="addDriver()">+ Add</button>
+    </div>
+    <div id="drivers-list"></div>
+  </div>
+
+  <!-- RF Checks -->
+  <div class="check-group" style="margin-top:8px">
+    <div class="check-group-title">Panel verifications</div>
+    <div class="check-list" id="checks-rf"></div>
+  </div>
+
+  <!-- RF Screen checks -->
+  <div class="check-group">
+    <div class="check-group-title">Rovematic screen checks</div>
+    <div class="check-list" id="checks-rf-screen"></div>
+  </div>
+
+  <!-- Motor info -->
+  <div class="info-card" style="margin-top:0">
+    <h3>Motor references</h3>
+    <div class="info-grid">
+      <div class="info-field full"><label>M1 motor model</label><input type="text" id="motor-m1"></div>
+      <div class="info-field full">
+        <label>M2 motor type</label>
+        <select id="motor-m2" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+          <option value="">Select...</option>
+          <option>PT1K+2PTC</option>
+          <option>KTY83</option>
+        </select>
+      </div>
+      <div class="info-field full"><label>M4 motor model</label><input type="text" id="motor-m4"></div>
+      <div class="info-field full"><label>M9 motor model</label><input type="text" id="motor-m9"></div>
+      <div class="info-field full"><label>Reductor</label><input type="text" id="motor-reductor"></div>
+    </div>
+  </div>
+
+  <div class="info-card" style="margin-top:8px">
+    <h3>Individual breakage sensors</h3>
+    <div class="info-grid">
+      <div class="info-field full">
+        <label>Sensor version</label>
+        <select id="ib-sensor-ver" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)" onchange="document.getElementById('ib-sensor-other-div').style.display=this.value==='Altres'?'block':'none'">
+          <option value="">Select...</option>
+          <option>L3</option>
+          <option>Altres</option>
+        </select>
+      </div>
+      <div class="info-field full" id="ib-sensor-other-div" style="display:none">
+        <label>Specify sensor version</label>
+        <input type="text" id="ib-sensor-other" placeholder="Especificar versió">
+      </div>
+      <div class="info-field full"><label>Central device version</label><input type="text" id="ib-central-ver" placeholder="Versió dispositiu central"></div>
+      <div class="info-field full"><label>Central device serial Nº</label><input type="text" id="ib-central-sn" placeholder="Nº sèrie dispositiu central"></div>
+      <div class="info-field full"><label>Intermediate module version</label><input type="text" id="ib-module-ver" placeholder="Versió mòdul intermig"></div>
+    </div>
+  </div>
+
+  <div class="info-card" style="margin-top:8px">
+    <h3>Electrical components</h3>
+    <div class="info-grid">
+      <div class="info-field full">
+        <label>BQ13 / BQ14 photocell type</label>
+        <select id="bq-type" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)" onchange="document.getElementById('bq-other-div').style.display=this.value==='Altres'?'block':'none'">
+          <option value="">Select...</option>
+          <option>Sick WS_WE</option>
+          <option>Sick HS18</option>
+          <option>Banner</option>
+          <option>Leuze</option>
+          <option>Altres</option>
+        </select>
+      </div>
+      <div class="info-field full" id="bq-other-div" style="display:none">
+        <label>Specify BQ type</label>
+        <input type="text" id="bq-other" placeholder="Especificar tipus">
+      </div>
+      <div class="info-field full">
+        <label>RC version (K2)</label>
+        <select id="rc-k2" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+          <option value="">Select...</option>
+          <option>23050 (original)</option>
+          <option>23022 (nova versió)</option>
+        </select>
+      </div>
+      <div class="info-field full">
+        <label>Resistència frenada</label>
+        <select id="brake-res" style="width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--c-bg);color:var(--c-text)">
+          <option value="">Select...</option>
+          <option>7.5 Ohm</option>
+          <option>15 Ohm</option>
+          <option>30 Ohm</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== TAB: TRANSFER ===== -->
+<div class="section-content" id="tab-trf">
+
+  <div class="check-group">
+    <div class="check-group-title">Transfer panel verifications</div>
+    <div class="check-list" id="checks-trf"></div>
+  </div>
+
+  <div class="check-group">
+    <div class="check-group-title">Cables verification</div>
+    <div class="check-list" id="checks-trf-cables"></div>
+  </div>
+
+  <div class="check-group">
+    <div class="check-group-title">Mechanical</div>
+    <div class="check-list" id="checks-trf-mech"></div>
+  </div>
+
+</div>
+
+<!-- Observations (always visible at bottom of each tab via scroll) -->
+<div class="obs-area">
+  <label>Observations / notes</label>
+  <textarea id="observations" placeholder="Notes, pending issues..."></textarea>
+</div>
+
+<!-- EXPORT BAR -->
+<div class="export-bar">
+  <button class="export-btn secondary" onclick="exportCSV()">⬇ CSV</button>
+  <button class="export-btn primary" onclick="exportExcel()">⬇ Excel</button>
+  <button class="export-btn secondary" onclick="shareFile()" id="share-btn" style="min-width:48px;flex:0.5">📤</button>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const CHECKS = {
+  pc: [
+    { id:'pc1', ca:'Comprovar llengua O.S. (Windows): ENGLISH UK', en:'OS language: English (United Kingdom)' },
+    { id:'pc2', ca:'Llengua menús: ENGLISH UK', en:'Menu language: English (United Kingdom)' },
+    { id:'pc3', ca:'RAM Cervoz instal·lada', en:'RAM Cervoz installed', special:'ram' },
+    { id:'pc4', ca:'Llicència CX-ONE (Omron)', en:'CX-ONE (Omron) license' },
+    { id:'pc5', ca:'Windows — Device Name', en:'Windows version and device name', special:'windows' },
+    { id:'pc6', ca:'Crear carpetes D:\\DATABASE, INSTAL\\VB, PLC, DATA', en:'Create folders D:\\DATABASE, INSTAL\\VB, PLC, DATA' },
+    { id:'pc7', ca:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / GW: 192.168.250.254', en:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / Gateway: 192.168.250.254' },
+    { id:'pc8', ca:'IP targeta extra: automàtica', en:'Extra card IP: automatic' },
+    { id:'pc9', ca:'COM2 = Transfer, COM3 = Individual detector', en:'COM ports set: COM2-Transfer, COM3-Individual detector' },
+    { id:'pc10', ca:'Calibrar pantalla tàctil', en:'Touch screen calibration done' },
+    { id:'pc11', ca:'Conectar SAI i configurar paràmetres apagat', en:'UPS connected and shutdown parameters configured' },
+    { id:'pc12', ca:'Canviar configuració regional (país client)', en:'Regional settings changed to customer country', special:'regional' },
+    { id:'pc13', ca:'Comprovar idioma teclat', en:'Keyboard language checked', special:'keyboard' },
+    { id:'pc14', ca:'Verificar dades client, IP i fons pantalla a escriptori', en:'Customer data, IP and wallpaper visible on desktop' },
+    { id:'pc15', ca:'Activar Visual Studio Community 2019', en:'Visual Studio Community 2019 activated' },
+    { id:'pc15b', ca:'Carregar tots els programes màquina. Accés directe VB a escriptori i inici', en:'Load all machine/installation programs. VB shortcut to Desktop and Startup' },
+    { id:'pc16', ca:'Treure actualitzacions Windows 10 versió 101A (2 discs)', en:'Windows 10 updates removed v101A (both hard drives)' },
+    { id:'pc17', ca:'Crear imatge de HD1 a HD2', en:'Image created from HD1 to HD2' },
+    { id:'pc18', ca:'Enganxar etiquetes SAI', en:'UPS stickers applied' },
+    { id:'pc19', ca:'Treure i tornar corrent → Comprova DB: Device Value = Factory Settings Value', en:'Switch off/on → DB check: Device Value matches Factory Settings Value' },
+    { id:'pc20', ca:'Fer fotos: nameplate, panell elèctric, PC darrere, pusher', en:'Photos taken: nameplate, electrical panel, PC back, pusher' },
+    { id:'pc21', ca:'Comprovar nivell frame / pantalla vidre (LVDS no pinçat)', en:'Frame level / glass screen checked (LVDS not crushed)' },
+  ],
+  rf: [
+    { id:'rf1', ca:'Tots els cargols collats (inclús els no usats)', en:'All screws tightened (including unused)' },
+    { id:'rf2', ca:'Cables a bobines relés A1-A2', en:'Relay bobbins A1-A2 cables', special:'relay_type' },
+    { id:'rf3', ca:'Bateries connectades, font amb suport i etiqueta', en:'Batteries connected, SMPS with support and label' },
+    { id:'rf4', ca:'Fusibles instal·lats (gG, gR, 5x20mm)', en:'All fuses installed (gG, gR, 5x20mm)' },
+    { id:'rf4b', ca:'Cables que van al QG2 (potència) a la sortida del KG. ADR & ADR+', en:'Cables to QG2 (power) at output of KG. ADR & ADR+' },
+    { id:'rf5', ca:'Inverters: UG+→Marró, UG-→Blau', en:'Inverters: UG+→Brown, UG-→Blue' },
+    { id:'rf6', ca:'Tèrmics motors ajustats Q10/9.5; Q11/8; QM/6; Q13/1.15', en:'Motor thermals adjusted Q10/9.5; Q11/8; QM/6; Q13/1.15' },
+    { id:'rf7', ca:'Tots els cables màniga amb brida identificació', en:'All sleeve cables have identification clip' },
+    { id:'rf8', ca:'Puentes seguretat portes', en:'Door safety bridges installed' },
+    { id:'rf9', ca:'Espumes porta quadre i passa-cables posades i collades', en:'Panel door foam and cable foams fixed' },
+    { id:'rf10', ca:'Filtres reixa: part inferior, porta i ventiladors', en:'Grille filters: bottom, door and fans' },
+    { id:'rf11', ca:'Terres als equips Lenze, porta, PC, font', en:'Ground wires at Lenze, door, PC, source' },
+    { id:'rf12', ca:'Configuració deep switches ON/OFF – IO1000 – inverters', en:'Deep switches configured: ON/OFF, IO1000, inverters' },
+    { id:'rf13', ca:'Díodes correctament posats (KRF2/KGR/KR12)', en:'Diodes correctly positioned (KRF2/KGR/KR12)' },
+    { id:'rf14', ca:'KTG programat A/8/1 min', en:'KTG set to A/8/1 min' },
+    { id:'rf15', ca:'Semàfor instal·lat i comprovat. Tipus: NO LED / LED', en:'Tower light installed and checked. Type: NO LED / LED' },
+    { id:'rf16', ca:'Verificar Energy Kit SI/NO i configuració 3PBW/100/5/100', en:'Energy kit check (YES/NO) and config 3PBW/100/5/100' },
+    { id:'rf17', ca:'Comprovar condensadors connector X5 (1r i últim driver)', en:'Condensers at connector X5 first and last driver (ADR/ADR+)' },
+    { id:'rf18', ca:'RC connectat a K2 i KG; filtre en K1 i K2', en:'RC connected to K2/KG; coil filter on K1 and K2', special:'rc_k2' },
+    { id:'rf19', ca:'Verificar voltatge fàbrica igual al transformador', en:'Mill voltage matches transformer (380/400/415/440/460V)' },
+    { id:'rf20', ca:'Ajustar font: 24V G3 / 27V G1 / 13.8V G4 / 12V G5 / 28.5V G2', en:'Adjust sources: 24V G3/27V G1/13.8V G4/12V G5/28.5V G2' },
+    { id:'rf21', ca:'Comprovar parada mòduls de seguretat', en:'Safety modules stoppage checked' },
+    { id:'rf22', ca:'Ajustar relé voltatge: 15V menys que entrada; NC=5', en:'Voltage relay: 15V less than input; NC=5' },
+    { id:'rf23', ca:'Provar motors (carro proves), lubrificador, neumafil, bancada', en:'Test motors (trolley), lubricator, pneumafil, spindle table' },
+    { id:'rf24', ca:'Comprovar eix motor MCS14 frenat amb KRF2 a OFF', en:'MCS14 motor axis braked when KRF2 is OFF' },
+    { id:'rf25', ca:'Quitar tots els ponts de prova', en:'Remove all test bridges' },
+    { id:'rf26', ca:'Verificació PC realitzada (relació pinyons, nºs de sèrie)', en:'PC verification done (pinion relation, serial numbers)' },
+    { id:'rf27', ca:'Caixa recanvis per al client', en:'Spare parts box for customer' },
+    { id:'rf28', ca:'Esquemes (dossiers porta-papers) i bossa catàlegs', en:'Electrical drawings and catalogues in cabinet door' },
+    { id:'rf29', ca:'Cable cable cadena fixada per la part superior', en:'Cable chain fixed on top side' },
+    { id:'rf30', ca:'Tapa gran superior testera', en:'Big cover top side panel board' },
+    { id:'rf31', ca:'Comprovar doble càmera parada: allargís, part posterior porta', en:'Check double chamber stopped: extension cable, back door (ADR/ADR+)' },
+    { id:'rf32', ca:'Comprovar que els drivers estan mecanitzats i sense ventilador posterior', en:'Check driver cover has been cut and backside fan removed (ADR/ADR+)' },
+    { id:'rf33', ca:'Puent seguretat portes (BQS1) i fotocèl·lula collada (AF)', en:'Door safety bridge (BQS1) and photocell well screwed (AF only)' },
+    { id:'rf34', ca:'Comprovar cable A connexions i connectors marcats + allargís S11 (AF)', en:'Check cable A connections correctly done and connectors marked + S11 extension (AF)' },
+    { id:'rf35', ca:'Comprovar cable B connexions i connectors marcats (ADR/ADR+)', en:'Check cable B connections correctly done and connectors marked (ADR/ADR+)' },
+    { id:'rf36', ca:'Comprovar cable C sèrie polsadors i colors fils', en:'Check cable C series of pushers and wire colours' },
+    { id:'rf37', ca:'Comprovar cable D connectat i marcat (AF)', en:'Check cable D correctly connected and marked (AF only)' },
+    { id:'rf38', ca:'Comprovar cable E connexions i connectors marcats', en:'Check cable E connections correctly done and connectors marked' },
+    { id:'rf39', ca:'Comprovar cable F connexions i connectors marcats (ADR/ADR+)', en:'Check cable F connections correctly done and connectors marked (ADR/ADR+)' },
+    { id:'rf40', ca:'Comprovar cable J mascle-femella i marcat', en:'Check cable J male at one end, nuts at other end, marked' },
+    { id:'rf41', ca:'Comprovar cable L connectat i marcat (ADR/ADR+)', en:'Check cable L correctly connected and marked (ADR/ADR+)' },
+    { id:'rf42', ca:'Comprovar cable BQ122-B connectat, marcat i collat (ADR/ADR+)', en:'Check cable BQ122-B connected, marked and fixed (ADR/ADR+)' },
+    { id:'rf43', ca:'Comprovar cable BQ13(R)-14(E) connectat, marcat. Verificar voltatge', en:'Check cable BQ13(R)-14(E) connected, marked, fixed. Check voltage with multimeter' },
+    { id:'rf44', ca:'Comprovar cable BQ15 correctament marcat (ADR/ADR+)', en:'Check cable BQ15 correctly marked (ADR/ADR+)' },
+    { id:'rf45', ca:'Comprovar cable M13/M14/M15 correctament marcats', en:'Check cable M13/M14/M15 correctly marked' },
+    { id:'rf46', ca:'Cable comunicació PAR/POS marcat pels dos extrems PC→PLC (ADR/ADR+)', en:'Communication cable PAR/POS marked at both ends PC→PLC (ADR/ADR+)' },
+    { id:'rf47', ca:'Comprovar cable 24VDC (transfer) ADR/ADR+', en:'Check 24VDC cable (transfer) ADR/ADR+' },
+    { id:'rf48', ca:'Comprovar cable 380VAC connectat i marcat (ADR/ADR+)', en:'Check cable 380VAC connected and marked (ADR/ADR+)' },
+    { id:'rf49', ca:'Verificar funcionament QGR i KGR netejador', en:'Check QGR and KGR signals and cleaner discharge to pneumafil' },
+    { id:'rf50', ca:'Salida soplado neumafil, tubs airflex amb brides', en:'Pneumafil with airflex tube and ties' },
+    { id:'rf51', ca:'Fotos primer quadre de cada client', en:'Photos taken from 1st customer panel' },
+    { id:'rf52', ca:'Sensors vermells: voltatge font G2 ajustat al màxim (28VDC)', en:'Red sensors: G2 output voltage adjusted to maximum (28VDC)' },
+    { id:'rf53', ca:'Provar funcionament detectors individuals / BQ0 al mòdul', en:'Check individual breakage detectors / BQ0 erected on module if not installed' },
+    { id:'rf54', ca:'Caixa amb detectors de rotura individual', en:'Box with individual breakage detectors' },
+  ],
+  rfscreen: [
+    { id:'rfs1', ca:'Número de husos a pantalla "Herramientas"', en:'Spindles number on Tools screen' },
+    { id:'rfs2', ca:'Màquina amb control netejador viatger (missatge LIMPIADOR)', en:'Traveller cleaner control (CLEANER WORKING/STOPPED message)' },
+    { id:'rfs3', ca:'Tipus sensors ruptura individual (pantalla Roturas individuales)', en:'Individual breakage sensor type (breakage screen)' },
+    { id:'rfs4', ca:'Temps interval engrase bancada (pantalla lubricació)', en:'Lubrication interval time (spindles table lubrication screen)' },
+    { id:'rfs5', ca:'Temps màquina funcionant (monitor motors) — Rovematic 5.3: posar 0', en:'Machine working time (monitor motors) — Rovematic 5.3: set to 0' },
+    { id:'rfs6', ca:'Impulsos rebuts del detector engrase', en:'Impulses from lubrication detector' },
+    { id:'rfs7', ca:'Punt límit superior 1a capa (motor bancada pujar/baixar)', en:'Superior limit point 1st layer (spindles table motor up/down)' },
+    { id:'rfs8', ca:'Punt límit inferior 1a capa', en:'Inferior limit point 1st layer' },
+    { id:'rfs9', ca:'Temps interval engrase engranatges (Control engrase engranajes)', en:'Interval time between greasing (Drafting gears greasing)' },
+    { id:'rfs10', ca:'Diàmetre màxim bobina (Limitación del diámetro)', en:'Max bobbin diameter (Meters and diameter limit screen)' },
+    { id:'rfs11', ca:'Tipus estiratge (pantalla Herramientas)', en:'Drafting type (Tools screen)' },
+  ],
+  trf: [
+    { id:'t1', ca:'No queden contactes lliures (relés/contactors)', en:'No free contacts (relays/contactors)' },
+    { id:'t2', ca:'Tots els cargols collats (inclús els no usats)', en:'All screws tightened (not used too)' },
+    { id:'t3', ca:'Cables bobines relés A1-A2 correctes', en:'Relay bobbins A1-A2 correct. Type: OMRON/OTHER', special:'relay_type' },
+    { id:'t4', ca:'Cables potència connectats correctament', en:'Power wires well connected' },
+    { id:'t5', ca:'Ferrita instal·lada', en:'Ferrite installed. Model: Omron/Fuji', special:'ferrite' },
+    { id:'t6', ca:'Fusibles posats (5x20mm) 4A', en:'Fuses inserted (5x20mm) 4A' },
+    { id:'t7', ca:'Tèrmics motors corresponen i regulats', en:'MPCB well adjusted' },
+    { id:'t8', ca:'Tots els cables amb brida identificació', en:'All cables with identification label' },
+    { id:'t9', ca:'Espumes passa-cables posades i collades', en:'Foams on holes well fixed' },
+    { id:'t10', ca:'Espumes porta quadre + taps blancs', en:'Foam on door + white caps' },
+    { id:'t11', ca:'Polsador i detector seguretat porta transfer', en:'Pushers and security sensor at transfer door' },
+    { id:'t12', ca:'Cable comunicació PAR/POS marcat pels dos extrems (OMRON)', en:'PLC communication cable marked at both sides' },
+    { id:'t13', ca:'Terres als equips Lenze i porta (motors a borns)', en:'Ground wires at Lenze and shield fixed at door' },
+    { id:'t14', ca:'Configuració pins CIF11 transfer', en:'CIF11 deep switches set' },
+    { id:'t15', ca:'Díodes correctament posats (–/+)', en:'Diodes in the correct position' },
+    { id:'t16', ca:'Cablejat polit a l\'entrada quadre i autòmat', en:'Wiring tidy in PLC and cabinet' },
+    { id:'t17', ca:'LEDs funcionen correctament', en:'LEDs working ok' },
+    { id:'t18', ca:'Clau triangle a la porta', en:'Triangle key at door' },
+    { id:'t19', ca:'Programa entrat al PLC i verificat amb tram proves', en:'Transfer program loaded to PLC. Trolley checking done' },
+    { id:'t20', ca:'Comprovar si l\'autòmat té la bateria', en:'Check if PLC battery is installed' },
+    { id:'t21', ca:'Entrades PLC 1.04/1.05 (simple/doble/triple) segons número de pues', en:'PLC inputs 1.04/1.05 (simple/double/triple) as per spindles quantity' },
+    { id:'t22', ca:'Equips Lenze U1-U2 i brides cables potència i encoder marcats', en:'Lenze U1-U2 encoder and power cable clips identified' },
+    { id:'t23', ca:'Porta, botonera, triangles perill elèctric', en:'Door labels, pushers and electrical danger triangles' },
+    { id:'t24', ca:'Tots els elements dins quadre marcats. Placa E-Jet/Rieter també', en:'All devices in electrical cabinet marked. Machine nameplate E-Jet/Rieter as well' },
+    { id:'t25', ca:'Muntatge regles a la corba i manòmetre pressió d\'aire (ADR)', en:'Sections sticker at curve and air pressure manometer (ADR)' },
+    { id:'t26', ca:'Manòmetre pressió d\'aire (ADR+)', en:'Air pressure manometer (ADR+)' },
+    { id:'t27', ca:'Hi ha conjunts díodes a l\'allargís BQ211. LEUZE/SICK/BANNER', en:'Diodes connected to cable BQ211. LEUZE/SICK/BANNER' },
+    { id:'t28', ca:'Tub passa cables TAB enviat (ADR+)', en:'TAB cables tube sent (ADR+)' },
+  ],
+  trfcables: [
+    { id:'tc1', ca:'Cable detectors posició tram interior connectat i marcat', en:'Interior carousel position detectors cable connected and marked' },
+    { id:'tc2', ca:'Cable motors M1-M2 connectat i marcat', en:'M1 & M2 motor cables marked and checked' },
+    { id:'tc3', ca:'Cable botonera porta darrere connectat i marcat', en:'Rear door pushers cable marked and checked' },
+    { id:'tc4', ca:'Cable motor pujar pua connectat + rectificador', en:'Spindle motor cable marked and checked. Rectifier in cabinet' },
+    { id:'tc5', ca:'Cable detector columna transfer connectat i marcat (BQ7)', en:'BQ7 (transfer column detector) cable connected and marked' },
+    { id:'tc6', ca:'Cable motor M4 i M6 connectat i marcat (ADR)', en:'M4-M6 motor cable marked and checked (ADR)' },
+    { id:'tc7', ca:'Cable M4 marcat, etiqueta fletxa, verificar sentit gir (ADR+)', en:'M4 cable marked, arrow sticker, motor direction checked (ADR+)' },
+    { id:'tc8', ca:'Cables detectors seguretat portes connectats i marcats', en:'Safety door cables marked and checked' },
+    { id:'tc9', ca:'Cable llum alarma connectat i marcat', en:'Alarm sparkling light cable marked and checked' },
+    { id:'tc10', ca:'Cables 380VAC / 220VAC / 24VDC marcats i connectats', en:'380VAC/220VAC/24VDC cables marked and connected' },
+    { id:'tc11', ca:'Cable fotocèl·lules i sensors rail TAB-TAC connectats i marcats. Verificar BQ209 (previ)', en:'Transport photocells and sensors cable marked and checked. Verify BQ209. LEUZE/SICK/BANNER' },
+    { id:'tc12', ca:'Cable comunicació TAB-TAC o DMI connectat i marcat', en:'Transport communication cable marked and checked. TAB-TAC or DMI' },
+    { id:'tc13', ca:'Cable motors M5-1 i M5-2 connectat (si hi va)', en:'M5-1 & M5-2 motor cable marked and checked (only if transfer controls transport motors)' },
+  ],
+  trfmech: [
+    { id:'tm1', ca:'Portes tanquen correctament', en:'Doors adjusted and closing properly' },
+    { id:'tm2', ca:'Suports i cèl·lules BQ13(E)-BQ14(R) posats i marcats', en:'BQ13(E)-BQ14(R) photocells and supports fixed and marked' },
+    { id:'tm3', ca:'Pua del transfer muntada i correcta pel tub del client', en:'Transfer spindle type correct for customer tube and mounted' },
+    { id:'tm4', ca:'Placa pneumàtica amb filtre i regulador. Tipus: Mecànic/Pneumàtic', en:'Pneumatic set with manometer and filter. Type: Mechanical/Pneumatic' },
+    { id:'tm5', ca:'Fer fotos al transfer (cada client)', en:'Take photos of the transfer (each customer)' },
+    { id:'tm6', ca:'Peça protecció encoder motor instal·lada', en:'Metal cover encoder protection installed' },
+    { id:'tm7', ca:'Netejadora "belcro" amb motor, pinta, boca aspiració, tubs (ADR)', en:'Belcro cleaning system with motor, comb, vacuum (ADR)' },
+    { id:'tm8', ca:'Detector BQ4 llarg a l\'extrem corba, BQ5 curt al vèrtex (ADR)', en:'Long BQ4 at outer vertex, short BQ5 at inner vertex (ADR)' },
+    { id:'tm9', ca:'Suports, cèl·lules BQ105-106, si doble BQ112-113 i suports miralls prop porta TRF (ADR)', en:'Photocells BQ105-106, if double BQ112-113 and mirror supports near TRF door (ADR)' },
+    { id:'tm10', ca:'Suports cèl·lules BQ005-006, si doble/triple BQ302-303, si triple BQ308-309 (ADR+)', en:'Supports and photocells BQ005-006, double/triple BQ302-303, triple BQ308-309 (ADR+)' },
+    { id:'tm11', ca:'BQ208-209-210-211-SCA-YVA(5)-YVDF(1)-YVTA(2) posats i marcats (ADR)', en:'Detectors BQ208-211-SCA and valves YVA(5)-YVDF(1)-YVTA(2) installed and marked (ADR)' },
+    { id:'tm12', ca:'BQ008-009-YV2-YV3 posats i marcats. Si doble: BQ108-109-YV4-YV5 (ADR+)', en:'BQ008-009-YV2(YVDF)-YV3(YVTA) installed. If double: BQ108-109-YV4-YV5 (ADR+)' },
+    { id:'tm13', ca:'Comprovar detectors BQ100 i BQ101 (ADR+)', en:'Check detectors BQ100 and BQ101 (ADR+)' },
+    { id:'tm14', ca:'Netejadora belcro amb motor i boca aspiració (ADR+)', en:'Belcro cleaning system with motor and vacuum system (ADR+)' },
+    { id:'tm15', ca:'Reductor M2 connectat amb roda motriu (ADR+)', en:'M2 reducer, motor and wheel fixed (ADR+)' },
+    { id:'tm16', ca:'Suports i cèl·lules BQ13(E)-BQ14(R) posats i marcats. LEUZE/SICK/BANNER', en:'BQ13(E)-BQ14(R) photocells and supports fixed and marked. LEUZE/SICK/BANNER' },
+    { id:'tm17', ca:'Pont fotocèl·lules BQ200-201 entregat. Si Plus: Simple BQ003-004, Doble +BQ300-301', en:'Photocells bracket BQ200-201. If Plus: Simple BQ003-004, Double +BQ300-301, Triple +BQ306-307' },
+    { id:'tm18', ca:'Detectors seguretat rail superior BDC DCA18/4629KS', en:'Top rail overpressure sensors BDC DCA18/4629KS' },
+    { id:'tm19', ca:'Caixa connexions ES-3-M', en:'Connection box ES-3-M' },
+    { id:'tm20', ca:'Fotocèl·lula tub previ + suport (si NO EJET transport, o EJET sentit OUT-IN)', en:'Previous tube photocell and support (if NO EJET transport or EJET direction OUT-IN)' },
+    { id:'tm21', ca:'Esquemes elèctrics (dossiers porta papers) i bossa catàlegs', en:'Electrical drawings and technical documentation in cabinet door' },
+    { id:'tm22', ca:'Marca encoder (Kubler/Wachendorf/Hohner)', en:'Encoder brand and type' },
+    { id:'tm23', ca:'Entregar si hi ha: Sac aspiració, Consola Lenze, Botonera manual', en:'Deliver if exists: Vacuum bag, Lenze keypad, Manual joystick' },
+    { id:'tm24', ca:'Pressostat ben ajustat i connectat. Tipus: Festo/Altre', en:'SPT connected and set. Type: Festo/Other' },
+    { id:'tm25', ca:'Model pneumàtica: Festo/Altre', en:'Pneumatic type: Festo/Other' },
+    { id:'tm26', ca:'Llum vermella parpellejant sobre la testera', en:'Sparkling red light on the cabinet' },
+  ]
+};
+
+const state = {
+  checks: {},
+  drivers: [],
+  driverCounter: 0,
+  pumps: []
+};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Set today's date
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+  renderChecks('checks-pc', CHECKS.pc);
+  renderChecks('checks-rf', CHECKS.rf);
+  renderChecks('checks-rf-screen', CHECKS.rfscreen);
+  renderChecks('checks-trf', CHECKS.trf);
+  renderChecks('checks-trf-cables', CHECKS.trfcables);
+  renderChecks('checks-trf-mech', CHECKS.trfmech);
+
+  addDriver();
+  addDriver();
+  renderAllPumps();
+
+  updateProgress();
+});
+
+function renderChecks(containerId, items) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  items.forEach(item => {
+    state.checks[item.id] = false;
+    const div = document.createElement('div');
+    div.className = 'check-item';
+    div.id = 'ci-' + item.id;
+    if (item.special === 'keyboard') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="keyboard-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>ESP — Spanish</option>
+            <option>ENG — English (UK)</option>
+            <option>ENG — English (US)</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'ram') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="ram-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>8 GB</option>
+            <option>16 GB</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'windows') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <select id="windows-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">Windows...</option>
+              <option>Windows 10</option>
+              <option>Windows 11</option>
+            </select>
+            <input type="text" id="device-name" placeholder="Device name" onclick="event.stopPropagation()"
+              style="flex:2;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'relay_type') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <select id="relay-sel-${item.id}" onclick="event.stopPropagation()" onchange="document.getElementById('relay-other-${item.id}').style.display=this.value==='Altres'?'block':'none';event.stopPropagation()"
+              style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">Select...</option>
+              <option>OMRON</option>
+              <option>Altres</option>
+            </select>
+          </div>
+          <input type="text" id="relay-other-${item.id}" placeholder="Especificar tipus" onclick="event.stopPropagation()"
+            style="display:none;margin-top:4px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'ferrite') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="ferrite-sel" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select...</option>
+            <option>Omron</option>
+            <option>Fuji</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'rc_k2') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            <select id="rc-sel" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">RC versió...</option>
+              <option>23050 (original)</option>
+              <option>23022 (nova)</option>
+            </select>
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'regional') {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <select id="regional-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+            <option value="">Select time zone...</option>
+            <option>(UTC-12:00) International Date Line West</option>
+            <option>(UTC-11:00) Coordinated Universal Time-11</option>
+            <option>(UTC-10:00) Hawaii</option>
+            <option>(UTC-09:00) Alaska</option>
+            <option>(UTC-08:00) Pacific Time (US &amp; Canada)</option>
+            <option>(UTC-07:00) Mountain Time (US &amp; Canada)</option>
+            <option>(UTC-07:00) Arizona</option>
+            <option>(UTC-06:00) Central Time (US &amp; Canada)</option>
+            <option>(UTC-06:00) Mexico City</option>
+            <option>(UTC-05:00) Eastern Time (US &amp; Canada)</option>
+            <option>(UTC-05:00) Bogota, Lima, Quito</option>
+            <option>(UTC-04:00) Atlantic Time (Canada)</option>
+            <option>(UTC-04:00) Caracas</option>
+            <option>(UTC-04:00) Santiago</option>
+            <option>(UTC-03:00) Brasilia</option>
+            <option>(UTC-03:00) Buenos Aires</option>
+            <option>(UTC-03:00) Montevideo</option>
+            <option>(UTC-02:00) Coordinated Universal Time-02</option>
+            <option>(UTC-01:00) Azores</option>
+            <option>(UTC-01:00) Cabo Verde Is.</option>
+            <option>(UTC+00:00) Dublin, Edinburgh, Lisbon, London</option>
+            <option>(UTC+00:00) Casablanca</option>
+            <option>(UTC+00:00) Coordinated Universal Time</option>
+            <option>(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna</option>
+            <option>(UTC+01:00) Barcelona, Madrid</option>
+            <option>(UTC+01:00) Belgrade, Bratislava, Budapest, Ljubljana, Prague</option>
+            <option>(UTC+01:00) Brussels, Copenhagen, Madrid, Paris</option>
+            <option>(UTC+01:00) Sarajevo, Skopje, Warsaw, Zagreb</option>
+            <option>(UTC+01:00) West Central Africa</option>
+            <option>(UTC+02:00) Athens, Bucharest</option>
+            <option>(UTC+02:00) Cairo</option>
+            <option>(UTC+02:00) Helsinki, Kyiv, Riga, Sofia, Tallinn, Vilnius</option>
+            <option>(UTC+02:00) Istanbul</option>
+            <option>(UTC+02:00) Jerusalem</option>
+            <option>(UTC+02:00) Johannesburg, Harare, Pretoria</option>
+            <option>(UTC+03:00) Baghdad</option>
+            <option>(UTC+03:00) Kuwait, Riyadh</option>
+            <option>(UTC+03:00) Moscow, St. Petersburg</option>
+            <option>(UTC+03:00) Nairobi</option>
+            <option>(UTC+03:30) Tehran</option>
+            <option>(UTC+04:00) Abu Dhabi, Muscat</option>
+            <option>(UTC+04:00) Baku</option>
+            <option>(UTC+04:00) Tbilisi</option>
+            <option>(UTC+04:00) Yerevan</option>
+            <option>(UTC+04:30) Kabul</option>
+            <option>(UTC+05:00) Islamabad, Karachi</option>
+            <option>(UTC+05:00) Tashkent</option>
+            <option>(UTC+05:30) Chennai, Kolkata, Mumbai, New Delhi</option>
+            <option>(UTC+05:30) Sri Jayawardenepura</option>
+            <option>(UTC+05:45) Kathmandu</option>
+            <option>(UTC+06:00) Astana</option>
+            <option>(UTC+06:00) Dhaka</option>
+            <option>(UTC+06:30) Yangon (Rangoon)</option>
+            <option>(UTC+07:00) Bangkok, Hanoi, Jakarta</option>
+            <option>(UTC+07:00) Krasnoyarsk</option>
+            <option>(UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi</option>
+            <option>(UTC+08:00) Kuala Lumpur, Singapore</option>
+            <option>(UTC+08:00) Perth</option>
+            <option>(UTC+08:00) Taipei</option>
+            <option>(UTC+09:00) Osaka, Sapporo, Tokyo</option>
+            <option>(UTC+09:00) Seoul</option>
+            <option>(UTC+09:30) Adelaide</option>
+            <option>(UTC+09:30) Darwin</option>
+            <option>(UTC+10:00) Brisbane</option>
+            <option>(UTC+10:00) Canberra, Melbourne, Sydney</option>
+            <option>(UTC+10:00) Guam, Port Moresby</option>
+            <option>(UTC+11:00) Solomon Is., New Caledonia</option>
+            <option>(UTC+12:00) Auckland, Wellington</option>
+            <option>(UTC+12:00) Fiji</option>
+            <option>(UTC+13:00) Nuku'alofa</option>
+          </select>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else {
+      div.innerHTML = `
+        <div class="check-box">
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+            <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="check-text">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    }
+    el.appendChild(div);
+  });
+}
+
+function toggleCheck(id) {
+  state.checks[id] = !state.checks[id];
+  const el = document.getElementById('ci-' + id);
+  el.classList.toggle('checked', state.checks[id]);
+  updateProgress();
+}
+
+function updateProgress() {
+  const allChecks = Object.values(state.checks);
+  const done = allChecks.filter(Boolean).length;
+  document.getElementById('progress-label').textContent = done + ' / ' + allChecks.length;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector('[data-tab="' + name + '"]').classList.add('active');
+}
+
+// ============================================================
+// OCR
+// ============================================================
+let ocrTarget = null;
+let ocrWorker = null;
+
+async function getWorker() {
+  if (!ocrWorker) {
+    ocrWorker = await Tesseract.createWorker('eng');
+  }
+  return ocrWorker;
+}
+
+function triggerOCR(target) {
+  ocrTarget = target;
+  const input = document.getElementById('global-file-input');
+  input.onchange = handleFileOCR;
+  input.click();
+}
+
+async function handleFileOCR(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('ocr-status-' + ocrTarget);
+  if (statusEl) statusEl.innerHTML = '<span class="spinner"></span> Reading image...';
+
+  try {
+    const worker = await getWorker();
+    let text = '';
+
+    if (ocrTarget === 'order-doc' || ocrTarget === 'cx-license') {
+      // Documents held flat on a surface — direct read is reliable
+      const url = URL.createObjectURL(file);
+      const { data: { text: directText } } = await worker.recognize(url);
+      URL.revokeObjectURL(url);
+      if (ocrScore(directText) >= 5) {
+        text = directText;
+        if (statusEl) statusEl.innerHTML = '<span class="spinner"></span> Done reading...';
+      } else {
+        ({ text } = await ocrBestRotation(worker, file, statusEl));
+      }
+    } else {
+      // PC nameplate, drivers, pumps — all use rotation detection
+      // (phone orientation is not always predictable)
+      ({ text } = await ocrBestRotation(worker, file, statusEl));
+    }
+
+    parseOCRResult(ocrTarget, text);
+    // Add quality hint if status was not set to ✓ by parseOCRResult
+    const curStatus = statusEl ? statusEl.textContent : '';
+    if (statusEl && !curStatus.startsWith('✓') && (ocrTarget === 'order-doc' || ocrTarget === 'cx-license')) {
+      const qs = ocrScore(text);
+      const hintH = qs < 3
+        ? ' 💡 Foto massa borrosa — intenta fotografiar el document pla i ben il·luminat'
+        : qs < 8 ? ' 💡 Prova amb més llum o menys angle' : '';
+      if (hintH) statusEl.innerHTML += '<br><small style="color:var(--c-warning)">' + hintH + '</small>';
+    }
+  } catch(err) {
+    if (statusEl) statusEl.textContent = '⚠ OCR error — fill manually';
+  }
+  e.target.value = '';
+}
+
+function parseOCRResult(target, text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const fullText = text.replace(/\n/g, ' ');
+
+  // ── IRONTECH PC NAMEPLATE ──────────────────────────────────────────
+  // Label layout:
+  //   Line with barcode above: IRTOPC150SAR5XA-26NJ   (model)
+  //   Line with barcode below: 250401441              (serial)
+  if (target === 'pc-nameplate') {
+    // Irontech label has two stacked barcodes:
+    //   Barcode 1 (top)    → text below it: IRTOPC150SAR5XA-26NJ  (model)
+    //   Barcode 2 (bottom) → text below it: 250401441             (serial)
+    //
+    // OCR strategy: find two consecutive non-empty lines where
+    //   line A = contains letters AND digits AND optionally dash, no spaces, 8+ chars  → model
+    //   line B = only digits (8-12), standalone                                        → serial
+    // Also try: any line matching E84... or IRT... for model; any 8-12 digit line for serial.
+
+    const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let foundModel = '';
+    let foundSerial = '';
+
+    // Pass 1: look for consecutive pair (model line then serial line)
+    for (let i = 0; i < rawLines.length - 1; i++) {
+      const a = rawLines[i];
+      const b = rawLines[i + 1];
+      const aIsModel  = a.length >= 8 && /[A-Za-z]/.test(a) && /[0-9]/.test(a) && !/\s/.test(a);
+      const bIsSerial = /^\d{8,12}$/.test(b.replace(/\s/g, ''));
+      if (aIsModel && bIsSerial && !foundModel) {
+        foundModel  = a;
+        foundSerial = b.replace(/\s/g, '');
+      }
+    }
+
+    // Pass 2: look for model-like token in any line (no spaces, letters+digits, 8+ chars)
+    if (!foundModel) {
+      for (const line of rawLines) {
+        if (line.length >= 8 && /[A-Za-z]/.test(line) && /[0-9]/.test(line) && !/\s/.test(line)) {
+          foundModel = line;
+          break;
+        }
+      }
+    }
+
+    // Pass 2b: scan ALL tokens (split by spaces) across all lines
+    // Useful when OCR inserts spurious spaces into the model string
+    if (!foundModel) {
+      const allTokens = rawLines.join(' ').split(/\s+/);
+      for (const tok of allTokens) {
+        // IRT prefix or long mixed alphanum with dash
+        if (/^IRT/i.test(tok) && tok.length >= 8) { foundModel = tok; break; }
+      }
+      if (!foundModel) {
+        // Look for token with dash inside and mixed chars: e.g. "SAR5XA-26NJ"
+        // Sometimes OCR splits "IRTOPC150" from "SAR5XA-26NJ"
+        const dashTok = allTokens.filter(t => /-/.test(t) && /[A-Z]/i.test(t) && /[0-9]/.test(t) && t.length >= 6);
+        if (dashTok.length) {
+          // Try to reconstruct: find adjacent tokens that together look like a model
+          const di = allTokens.indexOf(dashTok[0]);
+          const candidate = di > 0 ? allTokens[di-1] + allTokens[di] : dashTok[0];
+          if (candidate.length >= 10) foundModel = candidate;
+          else foundModel = dashTok[0];
+        }
+      }
+    }
+
+    // Pass 3: if serial not found, find first standalone 8-12 digit string
+    //         that does NOT appear inside the model
+    if (!foundSerial) {
+      for (const line of rawLines) {
+        const d = line.replace(/\s/g, '');
+        if (/^\d{8,12}$/.test(d) && !foundModel.includes(d)) {
+          foundSerial = d;
+          break;
+        }
+      }
+      // Pass 3b: scan tokens for digit-only string
+      if (!foundSerial) {
+        const allToks = rawLines.join(' ').split(/\s+/);
+        for (const tok of allToks) {
+          if (/^\d{8,12}$/.test(tok) && !foundModel.includes(tok)) {
+            foundSerial = tok; break;
+          }
+        }
+      }
+    }
+
+    // Fix common OCR errors in barcode fonts (Irontech IRTOPC model)
+    function fixBarcode(s) {
+      return s
+        .replace(/(?<=[A-Za-z])8(?=[A-Za-z])/g, '0')  // 8 between letters → 0 (IRT8PC→IRT0PC)
+        .replace(/(?<=[0-9])8(?=[A-Za-z])/g, '0')      // 8 after digit before letter → 0 (158S→150S)
+        .replace(/(?<=[0-9])S(?=[0-9])/g, '5')         // S between digits → 5
+        .replace(/SXA/g, '5XA');                        // SXA suffix → 5XA (specific Irontech pattern)
+    }
+    function fixSerial(s) {
+      // Serial is pure digits: S→5, and 8 is ambiguous — leave 8 as-is (user can correct)
+      return s.replace(/S/g, '5').replace(/O/g, '0').replace(/I/gi, '1').replace(/l/g, '1');
+    }
+    if (foundModel)  forceSet('pc-model',  fixBarcode(foundModel));
+    if (foundSerial) forceSet('pc-serial', fixSerial(foundSerial));
+
+    const statusEl = document.getElementById('ocr-status-pc-nameplate');
+    if (foundModel && foundSerial) {
+      if (statusEl) statusEl.textContent = '\u2713 Model: ' + foundModel + '  |  S/N: ' + foundSerial;
+    } else {
+      const preview = rawLines.slice(0, 8).join(' / ');
+      const missing = (!foundModel && !foundSerial) ? 'model & serial'
+                    : (!foundModel ? 'model' : 'serial');
+      const pcScore = ocrScore(text);
+      const hintPC = pcScore < 3
+        ? '<br><small style="color:var(--c-warning)">💡 Foto massa borrosa o inclinada — intenta fer-la més recta i amb zoom</small>'
+        : pcScore < 8
+        ? '<br><small style="color:var(--c-warning)">💡 Text llegit parcialment — prova amb més llum o menys angle</small>'
+        : '<br><small style="color:var(--c-warning)">💡 No detectat: ' + missing + ' — assegura que els codis de barres surten complets</small>';
+      if (statusEl) statusEl.innerHTML =
+        '<span style="color:var(--c-warning)">\u26a0 Could not detect ' + missing + '</span><br>' +
+        '<span style="font-size:11px;color:var(--c-text-secondary)">OCR read: ' + preview + '</span>' + hintPC;
+    }
+    return;
+  }
+
+
+  // ── FILSPEC ORDER DOCUMENT ─────────────────────────────────────────
+  // Extracts: Serial Nº (Pedido No.), Customer (Cliente Final),
+  // Order Nº (Pedido interno), Machine type (ADR/AF/ADR PLUS),
+  // Voltage (Volts), Hz, TRF type (Transfer)
+  if (target === 'order-doc') {
+    // FILSPEC document layout:
+    // "Pedido No.  19237"                  → Order Nº
+    // "Matrículas E-Jet  2015, 2016..."    → Serial Nº (first 4-digit year = machine serial)
+    // "Cliente Final (OT)  00012898  FILSPEC     UNITED STATES O"
+    //    → customer = name after account number, before long gap
+    //    → country  = words after the long gap (end of line)
+
+    // Order Nº
+    const pedidoM = text.match(/[Pp]edido\s*[Nn][oº°\.]*[^\d]{0,6}(\d{4,6})/);
+    if (pedidoM) forceSet('f-order', pedidoM[1]);
+
+    // Serial Nº — first number after "Matrículas E-Jet" / "Matriculas E-Jet"
+    const matM = text.match(/[Mm]atr[ií]culas?\s+E[-\s]?[Jj]et[^\d]{0,6}(\d{4})/);
+    if (matM) forceSet('f-serial', matM[1]);
+
+    // Customer & Country from "Cliente Final" line
+    const lines = text.split('\n');
+    const clienteLine = lines.find(l => /[Cc]liente\s*[Ff]inal/i.test(l));
+    if (clienteLine) {
+      // Line format: "Cliente Final (OT)   00012999   FILSPEC          UNITED STATES O"
+      // Step 1: remove everything up to and including the account number
+      //   - Remove "Cliente Final" + optional "(OT)" + whitespace
+      //   - Remove leading digits (account number) + whitespace
+      // OCR may produce: "Cliente Final:(OT) ~~ 0001299 FILSPEC    UNITED STATES O"
+      // Step 1: strip "Cliente Final" + any garbage + account number (digits) + space
+      let cl = clienteLine
+        .replace(/[Cc]liente\s*[Ff]inal[\s\S]*?\d+\s+/i, '')
+        .trim();
+      // Guard: if nothing was stripped, take everything after the last digit run
+      if (/^[Cc]liente/i.test(cl) || cl.length === clienteLine.length) {
+        const m = clienteLine.match(/\d+\s+([A-Z].*)$/);
+        if (m) cl = m[1];
+      }
+      // Step 2: extract country from end of string, then strip it from customer
+      const CTRY_RX = /\s+(UNITED\s+STATES?(?:\s+[A-Z]{1,2})?|UNITED\s+KINGDOM|SPAIN|FRANCE|GERMANY|TURKEY|INDIA|PORTUGAL|ITALY|BANGLADESH|PAKISTAN|MAURITIUS|CHINA|VIETNAM|INDONESIA|BRAZIL|COLOMBIA|MEXICO|EGYPT|IRAN|MOROCCO|ETHIOPIA|KENYA|GHANA|NIGERIA|ARGENTINA|PERU|CHILE)(?:\s+[A-Z]{1,2})?\s*$/i;
+      const ctryMatch = cl.match(CTRY_RX);
+      if (ctryMatch) forceSet('f-country', ctryMatch[1].trim());
+      cl = cl.replace(CTRY_RX, '').trim();
+      // Step 3: cut at 4+ spaces (any remaining country-like suffix)
+      cl = cl.split(/\s{4,}/)[0].trim();
+      // cl is now: "FILSPEC" / "CMT SPINNING MILLS LTD" / "WINSOME YARNS"""
+
+      // Step 2: find country at the END using known patterns
+      const countryRx = /\b(UNITED\s+STATES?(?:\s+[A-Z]{1,2})?|UNITED\s+KINGDOM|SPAIN|FRANCE|GERMANY|TURKEY|INDIA|PORTUGAL|ITALY|BANGLADESH|PAKISTAN|MAURITIUS|CHINA|VIETNAM|INDONESIA|BRAZIL|COLOMBIA|MEXICO|EGYPT|IRAN|MOROCCO|ETHIOPIA|KENYA|GHANA|NIGERIA|ARGENTINA|PERU|CHILE)(?:\s+[A-Z]{1,2})?$/i;
+      const cm = cl.match(countryRx);
+      if (cm) {
+        const countryStr = cm[0].trim();
+        const customerStr = cl.slice(0, cm.index).trim();
+        if (customerStr) forceSet('f-customer', customerStr);
+        forceSet('f-country', countryStr);
+      } else {
+        // Fallback: split on 2+ spaces
+        const parts = cl.split(/\s{2,}/);
+        if (parts.length >= 2) {
+          forceSet('f-customer', parts[0].trim());
+          forceSet('f-country',  parts[parts.length - 1].trim());
+        } else {
+          forceSet('f-customer', cl);
+        }
+      }
+    }
+
+    // Machine type
+    if (/ADR\s*PLUS/i.test(fullText)) setSelectByValue('f-type', 'ADR PLUS');
+    else if (/\bADR\b/i.test(fullText)) setSelectByValue('f-type', 'ADR');
+    else if (/\bAF\b/.test(fullText)) setSelectByValue('f-type', 'AF');
+
+    // Normal / Plus
+    if (/ADR\s*PLUS|PLUS/i.test(fullText)) setSelectByValue('f-plus', 'Plus');
+    else setSelectByValue('f-plus', 'Normal');
+
+    // Spindles
+    const husosM = fullText.match(/[Hh]usos[^\d]{0,5}(\d{2,3})/);
+    if (husosM) setSelectByValue('f-spindles', husosM[1]);
+
+    // Voltage
+    const voltM = fullText.match(/[Vv]olts?\s*[:\s]*(\d{3})/);
+    if (voltM) setSelectByValue('f-voltage', voltM[1]);
+    else { const vv = fullText.match(/\b(380|400|415|440|460)\b/); if (vv) setSelectByValue('f-voltage', vv[1]); }
+
+    // Hz
+    const hzM = fullText.match(/\b(50|60)\s*[Hh]z/);
+    if (hzM) setSelectByValue('f-hz', hzM[1]);
+
+    // TRF type — look for "Transfer  Simple/Doble/Triple" pattern; skip "Transfer NO"
+    const trfLine = lines.find(l => /[Tt]ipo\s+[Tt]ransfer|[Tt]ransfer\s+[A-Za-z]/i.test(l));
+    if (trfLine && !/\bNO\b/i.test(trfLine)) {
+      if (/[Tt]riple/i.test(trfLine)) setSelectByValue('f-trf', 'Triple');
+      else if (/[Dd]oble|[Dd]ouble/i.test(trfLine)) setSelectByValue('f-trf', 'Double');
+      else if (/[Ss]imple/i.test(trfLine)) setSelectByValue('f-trf', 'Simple');
+    }
+
+    const statusEl = document.getElementById('ocr-status-order-doc');
+    if (statusEl) statusEl.textContent = '\u2713 Done \u2014 review fields below';
+    showToast('Order doc read \u2014 check Info tab');
+    return;
+  }
+
+    if (target === 'cx-license') {
+    parseLicenseOCR(text);
+    return;
+  }
+
+  if (target.startsWith('driver-')) {
+    const idx = parseInt(target.split('-')[1]);
+    parseDriverOCR(idx, text);
+  }
+}
+
+function parseDriverOCR(idx, text) {
+  // Lenze 8400 TopLine C label:
+  //   Type:   E84AVTCD7514VX0
+  //   SW:     20.00
+  //   Ser. No. 13594690 11415479 000003   (3 groups separated by spaces)
+  //   IP20 / 2339  (these are NOT Id No / Prod No in the Excel sense)
+  //   The "Id No" and "Prod No" fields in the RF register correspond to
+  //   the Lenze ordering code / product number — usually on a sticker or
+  //   second label. We capture what we can and leave others for manual fill.
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const fullText = text.replace(/\n/g, ' ');
+  const d = state.drivers[idx];
+  if (!d) return;
+
+  // Type: line with "Type:" — OCR may produce lowercase or ESB4 instead of E84
+  // Fix: uppercase result, ESB→E8, trailing o→0
+  function fixLenzeType(s) {
+    return s.toUpperCase()
+      .replace(/^E[S]B/, 'E8')   // ESB4... → E84...
+      .replace(/O$/, '0');        // trailing O → 0
+  }
+  // Search full text for "Type:" (may not be line-start after rotation)
+  const typeMatch = fullText.match(/[Tt]ype\s*:\s*([A-Za-z0-9]{6,})/);
+  if (typeMatch) {
+    d.type = fixLenzeType(typeMatch[1]);
+  } else {
+    // Fallback: E8 or ESB4 pattern anywhere
+    const mFallback = fullText.match(/\b(E[Ss]?B?4[A-Za-z0-9]{6,})\b/);
+    if (mFallback) d.type = fixLenzeType(mFallback[1]);
+  }
+
+  // Ser. No.: "Ser. No." or "Ser No" followed by up to 3 groups of digits
+  // Capture all digits+spaces after the label, up to 30 chars
+  const serLine = lines.find(l => /ser[\.\s]*no/i.test(l));
+  if (serLine) {
+    const m = serLine.match(/ser[\.\s]*no\.?\s*([\d\s]{6,30})/i);
+    if (m) d.serno = m[1].trim().replace(/\s+/g, ' ');
+  }
+
+  // SW version → store in code field (useful reference)
+  const swLine = lines.find(l => /^SW\s*:/i.test(l));
+  if (swLine) {
+    const m = swLine.match(/SW\s*:\s*([\d\.]+)/i);
+    if (m) d.code = 'SW:' + m[1];
+  }
+
+  // IP / catalogue number (e.g. 2339) → prod no
+  const ipLine = lines.find(l => /IP\d{2}/.test(l));
+  if (ipLine) {
+    const m = ipLine.match(/IP\d{2}\s+(\d{4,})/);
+    if (m) d.prodno = m[1];
+  }
+
+  renderDriverFields(idx);
+  showToast('OCR done — check driver ' + (idx + 1));
+}
+
+function showRawOCR(target, text) {
+  // Show raw text in status for manual correction
+  const statusEl = document.getElementById('ocr-status-' + target);
+  if (statusEl) {
+    const preview = text.substring(0, 80).replace(/\n/g, ' ');
+    statusEl.textContent = '✓ Read: ' + preview + (text.length > 80 ? '...' : '');
+  }
+}
+
+function forceSet(fieldId, val) {
+  const el = document.getElementById(fieldId);
+  if (el) { el.value = val; el.classList.add('filled'); }
+}
+
+function setSelectByValue(selectId, val) {
+  const el = document.getElementById(selectId);
+  if (!el) return;
+  const opt = [...el.options].find(o => o.value.toLowerCase() === val.toLowerCase() || o.text.toLowerCase() === val.toLowerCase());
+  if (opt) { el.value = opt.value; el.classList.add("filled"); }
+}
+
+// ============================================================
+// LICENSE AUTO-TAB
+// ============================================================
+function autoTabLicense(el, nextId) {
+  if (el.value.length >= 4) {
+    const next = document.getElementById(nextId);
+    if (next) next.focus();
+  }
+}
+
+// ============================================================
+// DRIVERS
+// ============================================================
+function addDriver() {
+  const idx = state.drivers.length;
+  state.drivers.push({ type:'', idno:'', prodno:'', serno:'', code:'' });
+  renderAllDrivers();
+}
+
+function removeDriver(idx) {
+  state.drivers.splice(idx, 1);
+  renderAllDrivers();
+}
+
+function renderAllDrivers() {
+  const list = document.getElementById('drivers-list');
+  list.innerHTML = '';
+  state.drivers.forEach((d, idx) => {
+    const div = document.createElement('div');
+    div.className = 'driver-entry';
+    div.id = 'driver-entry-' + idx;
+    div.innerHTML = `
+      <div class="driver-entry-header">
+        <span class="driver-num">Driver ${idx + 1}</span>
+        <button class="del-btn" onclick="removeDriver(${idx})">Remove</button>
+      </div>
+      <button class="driver-ocr-btn" onclick="triggerDriverOCR(${idx})">
+        📷 Photo nameplate → auto-fill
+      </button>
+      <div id="ocr-status-driver-${idx}" style="font-size:12px;color:var(--c-text-secondary);text-align:center;min-height:16px;margin:6px 0;"></div>
+      <div class="driver-grid">
+        <div class="driver-field full"><label>Type</label><input type="text" id="d${idx}-type" value="${d.type}" oninput="updateDriver(${idx},'type',this.value)" placeholder="e.g. E84AVTCE2234VX0"></div>
+        <div class="driver-field full"><label>Ser No</label><input type="text" id="d${idx}-serno" value="${d.serno}" oninput="updateDriver(${idx},'serno',this.value)"></div>
+        <div class="driver-field"><label>SW No</label><input type="text" id="d${idx}-code" value="${d.code}" oninput="updateDriver(${idx},'code',this.value)" placeholder="e.g. 20.00"></div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function renderDriverFields(idx) {
+  const d = state.drivers[idx];
+  if (!d) return;
+  ['type','idno','prodno','serno','code'].forEach(k => {
+    const el = document.getElementById('d'+idx+'-'+k);
+    if (el && d[k]) { el.value = d[k]; }
+  });
+}
+
+function updateDriver(idx, key, val) {
+  if (state.drivers[idx]) state.drivers[idx][key] = val;
+}
+
+function triggerDriverOCR(idx) {
+  ocrTarget = 'driver-' + idx;
+  const input = document.getElementById('global-file-input');
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById('ocr-status-driver-' + idx);
+    if (statusEl) statusEl.innerHTML = '<span class="spinner"></span> Trying rotations...';
+    try {
+      const worker = await getWorker();
+      // Lenze labels are vertical — use rotation detection
+      const { text, score: drvQuality } = await ocrBestRotation(worker, file, statusEl);
+      parseDriverOCR(idx, text);
+      // Re-fetch statusEl after parseDriverOCR (it calls renderAllDrivers which recreates DOM)
+      const statusEl2 = document.getElementById('ocr-status-driver-' + idx);
+      const d = state.drivers[idx];
+      const filled = [d.type && 'Type: '+d.type, d.serno && 'Ser.No: '+d.serno,
+                      d.code && 'SW: '+d.code].filter(Boolean);
+      const rawPreview = text.replace(/\n/g,' ').substring(0, 180);
+      if (filled.length > 0) {
+        const missingD = [!d.type&&'Type', !d.serno&&'Ser.No', !d.code&&'SW'].filter(Boolean);
+        const missingHintD = missingD.length
+          ? '<br><small style="color:var(--c-warning)">💡 No detectat: '+missingD.join(', ')+' — assegura que surt a la foto</small>' : '';
+        if (statusEl2) statusEl2.innerHTML =
+          '<span style="color:green">✓ ' + filled.join('  ') + '</span><br>' +
+          '<small style="color:var(--c-text-secondary)">OCR: ' + rawPreview + '</small>' + missingHintD;
+      } else {
+        const hintD = drvQuality < 3
+          ? '<br><small style="color:var(--c-warning)">💡 Foto massa borrosa o inclinada — intenta fer-la més recta i amb zoom</small>'
+          : drvQuality < 8
+          ? '<br><small style="color:var(--c-warning)">💡 Text llegit parcialment — prova amb més llum o menys angle</small>' : '';
+        if (statusEl2) statusEl2.innerHTML =
+          '<span style="color:orange">⚠ No fields detected — fill manually</span><br>' +
+          '<small style="color:var(--c-text-secondary)">OCR: ' + rawPreview + '</small>' + hintD;
+      }
+    } catch(err) {
+      const statusEl2 = document.getElementById('ocr-status-driver-' + idx);
+      if (statusEl2) statusEl2.innerHTML =
+        '<span style="color:orange">⚠ Error: ' + (err.message || String(err)) + '</span>';
+    }
+    e.target.value = '';
+  };
+  input.click();
+}
+
+// ============================================================
+// GREASE PUMPS
+// ============================================================
+function addPump() {
+  state.pumps.push({ code:'', model:'', pno:'', sno:'' });
+  renderAllPumps();
+}
+
+function removePump(idx) {
+  state.pumps.splice(idx, 1);
+  renderAllPumps();
+}
+
+function renderAllPumps() {
+  const list = document.getElementById('pumps-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (state.pumps.length === 0) {
+    list.innerHTML = '<div style="padding:14px;color:var(--c-text-secondary);font-size:13px;text-align:center">No pumps added yet</div>';
+    return;
+  }
+  state.pumps.forEach((p, idx) => {
+    const div = document.createElement('div');
+    div.className = 'driver-entry';
+    div.innerHTML = `
+      <div class="driver-entry-header">
+        <span class="driver-num">Pump ${idx + 1}</span>
+        <button class="del-btn" onclick="removePump(${idx})">Remove</button>
+      </div>
+      <button class="driver-ocr-btn" onclick="triggerPumpOCR(${idx})">
+        📷 Photo nameplate → auto-fill
+      </button>
+      <div id="ocr-status-pump-${idx}" style="font-size:12px;color:var(--c-text-secondary);text-align:center;min-height:16px;margin:6px 0;"></div>
+      <div class="driver-grid">
+        <div class="driver-field full">
+          <label>Code</label>
+          <input type="text" id="p${idx}-code" value="${p.code}" oninput="updatePump(${idx},'code',this.value)" placeholder="e.g. P4014S5Y8H-24DC-2A1.1">
+        </div>
+        <div class="driver-field full">
+          <label>Model</label>
+          <input type="text" id="p${idx}-model" value="${p.model}" oninput="updatePump(${idx},'model',this.value)" placeholder="e.g. P401.SSY8H-24DC-2AK">
+        </div>
+        <div class="driver-field">
+          <label>P.No</label>
+          <input type="text" id="p${idx}-pno" value="${p.pno}" oninput="updatePump(${idx},'pno',this.value)">
+        </div>
+        <div class="driver-field">
+          <label>S.No</label>
+          <input type="text" id="p${idx}-sno" value="${p.sno}" oninput="updatePump(${idx},'sno',this.value)">
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function updatePump(idx, key, val) {
+  if (state.pumps[idx]) state.pumps[idx][key] = val;
+}
+
+// Rotate an image file by degrees and return a canvas blob URL
+async function rotateImageFile(file, degrees) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const rad = degrees * Math.PI / 180;
+      const canvas = document.createElement('canvas');
+      const swap = degrees === 90 || degrees === 270;
+      canvas.width  = swap ? img.height : img.width;
+      canvas.height = swap ? img.width  : img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => resolve(URL.createObjectURL(blob)), 'image/jpeg', 0.92);
+    };
+    img.src = url;
+  });
+}
+
+// Score OCR text: count words with 3+ letters + heavy bonus for label keywords
+function ocrScore(text) {
+  const t = text.toLowerCase();
+  const words = text.match(/[A-Za-z]{3,}/g) || [];
+  // Strong keywords = definitely the right orientation
+  const strong  = ['code','model','lubrication','lincoln','skf','p.no','s.no','pmax','czech',
+                   'irontech','irtopc','made in spain'];
+  // Weak keywords = helpful but not definitive
+  const weak    = ['bar','psi','vdc','made','germany','systems','spain','aerzen'];
+  const strongB = strong.filter(k => t.includes(k)).length * 20;
+  const weakB   = weak.filter(k => t.includes(k)).length * 5;
+  const p40B    = (text.match(/P40[0-9]/g) || []).length * 15;
+  // Reward Irontech model pattern: IRT + alphanum
+  const irtB    = (text.match(/IRT[A-Z0-9]/gi) || []).length * 25;
+  // Reward standalone 8-9 digit numbers (serials)
+  const snB     = (text.match(/\b\d{8,9}\b/g) || []).length * 10;
+  return words.length + strongB + weakB + p40B + irtB + snB;
+}
+
+async function ocrBestRotation(worker, file, statusEl) {
+  const rotations = [0, 90, 270, 180];
+  let bestText = '';
+  let bestScore = -1;
+  let bestAngle = 0;
+
+  for (const deg of rotations) {
+    if (statusEl) statusEl.innerHTML =
+      '<span class="spinner"></span> Trying ' + deg + '°...';
+    const rotUrl = deg === 0
+      ? URL.createObjectURL(file)
+      : await rotateImageFile(file, deg);
+    const { data: { text } } = await worker.recognize(rotUrl);
+    URL.revokeObjectURL(rotUrl);
+    const score = ocrScore(text);
+    if (score > bestScore) {
+      bestScore = score;
+      bestText = text;
+      bestAngle = deg;
+    }
+  }
+  if (statusEl) statusEl.innerHTML =
+    '<span class="spinner"></span> Best: ' + bestAngle + '°...';
+  return { text: bestText, score: bestScore, angle: bestAngle };
+}
+
+function triggerPumpOCR(idx) {
+  const input = document.getElementById('global-file-input');
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById('ocr-status-pump-' + idx);
+    if (statusEl) statusEl.innerHTML = '<span class="spinner"></span> Reading (trying rotations)...';
+    try {
+      const worker = await getWorker();
+      // Try all 4 rotations, pick the one that gives most latin text
+      const { text, score: ocrQuality } = await ocrBestRotation(worker, file, statusEl);
+      parsePumpOCR(idx, text);
+      // parsePumpOCR calls renderAllPumps() which recreates the DOM —
+      // re-fetch statusEl AFTER render so we write to the live element
+      const statusEl2 = document.getElementById('ocr-status-pump-' + idx);
+      const p = state.pumps[idx];
+      const filled = [p.code && 'Code: '+p.code, p.model && 'Model: '+p.model,
+                      p.pno && 'P.No: '+p.pno, p.sno && 'S.No: '+p.sno].filter(Boolean);
+      const rawPreview = text.replace(/\n/g,' ').substring(0, 200);
+      if (filled.length > 0) {
+        const missing = ['code','model','pno','sno'].filter(k => !p[k === 'pno' ? 'pno' : k === 'sno' ? 'sno' : k]);
+        const missingNames = {code:'Code', model:'Model', pno:'P.No', sno:'S.No'};
+        const missingStr = ['code','model','pno','sno'].filter(k => !p[k]).map(k => missingNames[k]);
+        const missingHint = missingStr.length
+          ? '<br><small style="color:var(--c-warning)">💡 No detectat: ' + missingStr.join(', ') + ' — assegura que surt a la foto</small>'
+          : '';
+        if (statusEl2) statusEl2.innerHTML =
+          '<span style="color:green">✓ ' + filled.join('&nbsp;&nbsp;') + '</span><br>' +
+          '<small style="color:var(--c-text-secondary)">OCR: ' + rawPreview + '</small>' + missingHint;
+      } else {
+        // Hint based on OCR quality score
+        let hint = '';
+        if (typeof ocrQuality !== 'undefined') {
+          if (ocrQuality < 3)  hint = '<br><small style="color:var(--c-warning)">💡 Foto massa borrosa o inclinada — intenta fer-la més recta i amb zoom</small>';
+          else if (ocrQuality < 8) hint = '<br><small style="color:var(--c-warning)">💡 Text llegit parcialment — prova amb més llum o menys angle</small>';
+        }
+        if (statusEl2) statusEl2.innerHTML =
+          '<span style="color:orange">⚠ No fields detected</span><br>' +
+          '<small style="color:var(--c-text-secondary)">OCR: ' + rawPreview + '</small>' + hint;
+      }
+    } catch(err) {
+      const statusEl3 = document.getElementById('ocr-status-pump-' + idx);
+      if (statusEl3) statusEl3.innerHTML =
+        '<span style="color:orange">⚠ OCR error: ' + (err.message||err) + '</span>';
+    }
+    e.target.value = '';
+  };
+  input.click();
+}
+
+function parsePumpOCR(idx, text) {
+  // Real OCR output from Lincoln/SKF pump label (rotation-corrected):
+  // "Code: P40142431110  Model: P401-SSY8-H-24DC-2XL-2A1.1  P.No.: P40142431110  S.No.: 10R-055788"
+  // OCR variants seen: "SP No.:" for "S.No:", "el:" for "Model:", "je:" for mixed
+  // Strategy: parse line by line, match keywords loosely, capture value token(s)
+
+  const p = state.pumps[idx];
+  if (!p) return;
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const full  = text.replace(/\n/g, ' ');
+
+  // Value extractor: captures everything after keyword up to next keyword or end
+  // Keyword separators: colon, dot, space
+  function extract(rx) {
+    const m = full.match(rx);
+    if (!m) return '';
+    // Take up to 30 chars, stop at next label keyword
+    let val = m[1].trim();
+    val = val.split(/(?=[A-Z][a-z]?\.?[Nn]o|[Mm]od(?:el)?|[Cc]od(?:e)?)/)[0];
+    return val.trim().replace(/[,;\s]+$/, '');
+  }
+
+  // CODE — "Code:" or "Cod:" followed by P40... value
+  p.code = extract(/[Cc]od(?:e|ig)?[e:\.\s]{0,4}(P[A-Z0-9][A-Z0-9\-\.]{4,})/i)
+        || extract(/\b(P40[0-9][A-Z0-9\-\.]{4,})/i)
+        || '';
+
+  // MODEL — multiple strategies to handle OCR garbling of "Model:" keyword
+  {
+    const CUT_RX = /(?:SP\s?[Nn]o\b|\bP\.\s?[Nn]o\b|\bS\.\s?[Nn]o\b|\bB[Ss]\s?[Nn]o\b|[Pp]max|\bbar\b|\bpsi\b|U\s*=|P\s*=).*/i;
+    function cleanModel(v) {
+      v = v.replace(/([A-Z0-9])\s([0-9A-Z])/g, '$1$2');
+      v = v.replace(CUT_RX, '').trim();
+      v = v.replace(/\s*\d{8,}.*/, '').trim();
+      return v.replace(/[,;:\s\.]+$/, '').trim();
+    }
+    // Method 1: keyword "Model:", "el:" (truncated), "BF"/"Bel" (OCR garbles of "Model")
+    const mm = full.match(/(?:[Mm]od(?:el)?|\bel|\b[Bb][Ff]|\b[Bb]el)[:\s\.]{0,4}(P4[0-9][A-Z0-9\-\.\s]{4,})/i);
+    if (mm) {
+      const v = cleanModel(mm[1]);
+      p.model = v.length > 5 ? v : '';
+    }
+    // Method 2: token fallback — P4xx with letters+dash that isn't code/pno
+    if (!p.model) {
+      const tokens = full.match(/P4[0-9][A-Z0-9\-\.]{5,}/gi) || [];
+      const modelTok = tokens.find(t => t !== p.code && /[A-Z]{2,}.*-/.test(t));
+      p.model = modelTok || '';
+    }
+  }
+
+  // P.No — "P.No", "P.N.", "P/N", "PN", "P No."
+  p.pno = extract(/[Pp][\.\s]?[Nn]o?[\.:\s°]{0,4}([A-Z0-9][A-Z0-9\-\.]{3,})/i) || '';
+  // Fallback: if P.No empty but Code is P40..., P.No is often same as Code on SKF pumps
+  if (!p.pno && p.code && /^P40/.test(p.code)) p.pno = p.code;
+
+  // S.No — many OCR variants: "S.No", "SP No.", "BSNo", "ESBSNo", "SNo", "S No"
+  // Value can be numeric (2022485144) or alphanumeric (10R-055788)
+  p.sno = extract(/(?:ES\s?BS\s?[Nn]o|BS\s?[Nn]o|SP\s?[Nn]o|[Ss][\.\s]?[Nn]o?)[\.:\s°-]{0,5}([0-9][A-Z0-9\-]{3,})/i) || '';
+  if (p.sno && p.pno && p.sno === p.pno) p.sno = '';
+
+  // Fallback 1: NNX-NNNNN pattern (e.g. "10R-055788")
+  if (!p.sno) {
+    const snFb = full.match(/\b([0-9]{2,3}[A-Za-z][-–][0-9A-Za-z]{5,8})\b/);
+    if (snFb) p.sno = snFb[1];
+  }
+  // Fallback 2: long numeric after P.No value (second big number in the text)
+  if (!p.sno && p.pno) {
+    const allNums = [...full.matchAll(/\b(\d{7,12})\b/g)].map(m => m[1]);
+    const second = allNums.find(n => n !== p.pno && n !== p.code);
+    if (second) p.sno = second;
+  }
+
+  // If code and model are identical, clear model
+  if (p.code && p.model && p.code === p.model) p.model = '';
+
+  renderAllPumps();
+}
+
+// cx-license OCR
+function parseLicenseOCR(text) {
+  // Omron CX-ONE license format: NNNN-NNNN-NNNN-NNNN (4 groups of 4 digits)
+  // Label text: "License number : 6160-0023-4358-6530"
+  const blocks = [];
+  const statusEl = document.getElementById('ocr-status-cx-license');
+
+  // Method 1: look for "License number" line and extract the number after it
+  const licLine = text.split('\n').find(l => /license\s*number/i.test(l));
+  if (licLine) {
+    // Extract sequence of digits and dashes after the colon
+    const m = licLine.match(/[:\s]+([\d][\d\-\s]{10,}[\d])/);
+    if (m) {
+      // Clean up: remove spaces, split by dash
+      const cleaned = m[1].replace(/\s/g, '');
+      const parts = cleaned.split('-').filter(p => /^\d{3,5}$/.test(p));
+      // Normalize each block to 4 digits
+      parts.slice(0, 4).forEach(p => blocks.push(p.padStart(4,'0').slice(-4)));
+    }
+  }
+
+  // Method 2: fallback — find 4 consecutive 4-digit groups anywhere in text
+  if (blocks.length < 4) {
+    const m2 = text.replace(/\s/g,'').match(/(\d{4})[-–](\d{4})[-–](\d{4})[-–](\d{4})/);
+    if (m2) {
+      blocks.length = 0;
+      for (let i=1;i<=4;i++) blocks.push(m2[i]);
+    }
+  }
+
+  // Method 3: scan for all standalone 4-digit tokens
+  if (blocks.length < 4) {
+    const tokens = text.match(/\b\d{4}\b/g) || [];
+    // Skip years (19xx, 20xx) and other obvious non-license numbers
+    const filtered = tokens.filter(t => !/^(19|20)\d{2}$/.test(t));
+    if (filtered.length >= 4) {
+      blocks.length = 0;
+      filtered.slice(0, 4).forEach(t => blocks.push(t));
+    }
+  }
+
+  const ids = ['cx-b1','cx-b2','cx-b3','cx-b4'];
+  blocks.forEach((b, i) => { if (ids[i]) forceSet(ids[i], b); });
+
+  // Diagnostic
+  const rawPreview = text.substring(0, 120).replace(/\n/g,' ');
+  if (blocks.length >= 4) {
+    if (statusEl) statusEl.textContent = '✓ License: ' + blocks.join('-');
+  } else if (blocks.length > 0) {
+    if (statusEl) statusEl.innerHTML =
+      '<span style="color:var(--c-warning)">⚠ Partial (' + blocks.length + '/4 blocks)</span><br>' +
+      '<small style="color:var(--c-text-secondary)">Read: ' + rawPreview + '</small>';
+  } else {
+    if (statusEl) statusEl.innerHTML =
+      '<span style="color:var(--c-warning)">⚠ No license number found</span><br>' +
+      '<small style="color:var(--c-text-secondary)">Read: ' + rawPreview + '</small>';
+  }
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function collectData() {
+  const g = id => document.getElementById(id)?.value || '';
+  const checks_done = {};
+  Object.keys(state.checks).forEach(k => { checks_done[k] = state.checks[k] ? 'YES' : ''; });
+
+  return {
+    // Machine info
+    serial: g('f-serial'),
+    verifiedby: g('f-verifiedby'),
+    customer: g('f-customer'),
+    date: g('f-date'),
+    order: g('f-order'),
+    type: g('f-type'),
+    plus: g('f-plus'),
+    spindles: g('f-spindles'),
+    voltage: g('f-voltage'),
+    hz: g('f-hz'),
+    trf: g('f-trf'),
+    transport: g('f-transport'),
+    doneby: g('f-doneby'),
+    country: g('f-country'),
+    // PC data
+    pc_serial: g('pc-serial'),
+    pc_model: g('pc-model'),
+    pc_tv_id: g('pc-tv-id'),
+    pc_tv_pass: g('pc-tv-pass'),
+    pc_keyboard: (document.getElementById('keyboard-select')||{}).value||'',
+    pc_ram: (document.getElementById('ram-select')||{}).value||'',
+    pc_windows: (document.getElementById('windows-select')||{}).value||'',
+    pc_device_name: (document.getElementById('device-name')||{}).value||'',
+    pc_vb_rov: g('pc-vb-rov'),
+    pc_vb_cx: g('pc-vb-cx'),
+    pc_vb_plc: g('pc-vb-plc'),
+    pc_vb_eng: g('pc-vb-eng'),
+    cx_license: [g('cx-b1'),g('cx-b2'),g('cx-b3'),g('cx-b4')].filter(Boolean).join('-'),
+    // Motors
+    motor_m1: g('motor-m1'),
+    motor_m2_type: g('motor-m2'),
+    ib_sensor_ver: (document.getElementById('ib-sensor-ver')||{}).value||'',
+    ib_sensor_other: g('ib-sensor-other'),
+    ib_central_ver: g('ib-central-ver'),
+    ib_central_sn: g('ib-central-sn'),
+    ib_module_ver: g('ib-module-ver'),
+    bq_type: (document.getElementById('bq-type')||{}).value||'',
+    bq_other: g('bq-other'),
+    rc_k2: (document.getElementById('rc-k2')||{}).value||'',
+    brake_res: (document.getElementById('brake-res')||{}).value||'',
+    motor_m2: g('motor-m2'),
+    motor_m4: g('motor-m4'),
+    motor_m9: g('motor-m9'),
+    motor_reductor: g('motor-reductor'),
+    // Observations
+    observations: g('observations'),
+    // Checks
+    checks: checks_done,
+    // Drivers
+    drivers: state.drivers,
+    pumps: state.pumps
+  };
+}
+
+function shareFile() {
+  // Build file synchronously first (must stay in user gesture context for share API)
+  const d = collectData();
+  const filename = 'RF_' + (d.serial || 'new') + '_' + (d.date || 'today') + '.xlsx';
+
+  try {
+    const wb = XLSX.utils.book_new();
+    const regRow = {
+      'SERIAL Nº': d.serial,
+    'VERIFIED BY': d.verifiedby, 'CUSTOMER': d.customer, 'DATE': d.date,
+      'ORDER Nº': d.order, 'COUNTRY': d.country, 'MACHINE TYPE': d.type,
+      'NORMAL / PLUS': d.plus, 'SPINDLES NUMBER': d.spindles,
+      'VOLTAGE': d.voltage, 'Hz': d.hz, 'TRF TYPE': d.trf,
+      'TRANSPORT': d.transport, 'DONE BY': d.doneby,
+      'PC SERIAL Nº': d.pc_serial, 'PC MODEL': d.pc_model,
+      'ID TEAM VIEWER': d.pc_tv_id,
+    'PASSWORD TEAM VIEWER': d.pc_tv_pass,
+    'KEYBOARD LANGUAGE': d.pc_keyboard,
+    'RAM': d.pc_ram,
+    'WINDOWS VERSION': d.pc_windows,
+    'DEVICE NAME': d.pc_device_name,
+      'VERSION ROV': d.pc_vb_rov, 'VERSION CX': d.pc_vb_cx,
+      'VERSION PLC': d.pc_vb_plc, 'VERSION ENGINEER': d.pc_vb_eng,
+      'LICENSE CX-ONE': d.cx_license, 'OBSERVATIONS': d.observations,
+    };
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([regRow]), 'Register');
+    const allChecks = [...CHECKS.pc, ...CHECKS.rf, ...CHECKS.rfscreen,
+                       ...CHECKS.trf, ...CHECKS.trfcables, ...CHECKS.trfmech];
+    XLSX.utils.book_append_sheet(wb,
+      XLSX.utils.json_to_sheet(allChecks.map(c => ({
+        Section: c.id.substring(0,2).toUpperCase(), Description: c.en, Status: d.checks[c.id]||''
+      }))), 'Checks');
+    XLSX.utils.book_append_sheet(wb,
+      XLSX.utils.json_to_sheet(d.drivers.map((dr,i) => ({
+        'Driver Nº':i+1, Type:dr.type, 'Ser No':dr.serno, 'SW No':dr.code
+      }))), 'Drivers');
+    XLSX.utils.book_append_sheet(wb,
+      XLSX.utils.json_to_sheet(d.pumps.map((p,i) => ({
+        'Pump Nº':i+1, Code:p.code, Model:p.model, 'P.No':p.pno, 'S.No':p.sno
+      }))), 'Grease Pumps');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const file = new File([blob], filename, { type: blob.type });
+
+    // Try sharing file — must call navigator.share synchronously within the click handler
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] })
+        .then(() => showToast('Fitxer compartit ✓'))
+        .catch(err => { if (err.name !== 'AbortError') showToast('Error: ' + err.message); });
+    } else {
+      // Files not supported — fallback: download + toast explaining
+      download(filename, wbout, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      showToast('Compartir fitxers no suportat — descarregat');
+    }
+  } catch(e) {
+    showToast('Error generant fitxer: ' + e.message);
+  }
+}
+
+function exportCSV() {
+  const d = collectData();
+  let csv = 'FIELD,VALUE\n';
+  csv += `SERIAL Nº,${d.serial}\n`;
+  csv += `CUSTOMER,${d.customer}\n`;
+  csv += `DATE,${d.date}\n`;
+  csv += `ORDER Nº,${d.order}\n`;
+  csv += `MACHINE TYPE,${d.type}\n`;
+  csv += `NORMAL/PLUS,${d.plus}\n`;
+  csv += `SPINDLES,${d.spindles}\n`;
+  csv += `VOLTAGE,${d.voltage}\n`;
+  csv += `HZ,${d.hz}\n`;
+  csv += `TRF TYPE,${d.trf}\n`;
+  csv += `TRANSPORT,${d.transport}\n`;
+  csv += `DONE BY,${d.doneby}\n`;
+  csv += `COUNTRY,${d.country}\n`;
+  csv += `PC SERIAL Nº,${d.pc_serial}\n`;
+  csv += `PC MODEL,${d.pc_model}\n`;
+  csv += `ID TEAM VIEWER,${d.pc_tv_id}\n`;
+  csv += `VB VERSION ROV,${d.pc_vb_rov}\n`;
+  csv += `VB VERSION CX,${d.pc_vb_cx}\n`;
+  csv += `VB VERSION PLC,${d.pc_vb_plc}\n`;
+  csv += `VERSION ENGINEER,${d.pc_vb_eng}\n`;
+  csv += `LICENSE CX-ONE,${d.cx_license}\n`;
+  csv += `MOTOR M1,${d.motor_m1}\n`;
+  csv += `MOTOR M2,${d.motor_m2}\n`;
+  csv += `MOTOR M4,${d.motor_m4}\n`;
+  csv += `MOTOR M9,${d.motor_m9}\n`;
+  csv += `REDUCTOR,${d.motor_reductor}\n`;
+  csv += `OBSERVATIONS,${d.observations}\n\n`;
+
+  csv += 'CHECKS\n';
+  csv += 'ID,DESCRIPTION,STATUS\n';
+  const allChecks = [...CHECKS.pc, ...CHECKS.rf, ...CHECKS.rfscreen, ...CHECKS.trf, ...CHECKS.trfcables, ...CHECKS.trfmech];
+  allChecks.forEach(c => {
+    csv += `${c.id},"${c.en}",${d.checks[c.id] || ''}\n`;
+  });
+
+  csv += '\nDRIVERS\n';
+  csv += 'DRIVER Nº,TYPE,ID NO,PROD NO,SER NO,CODE\n';
+  d.drivers.forEach((dr, i) => {
+    csv += `${i+1},${dr.type},${dr.idno},${dr.prodno},${dr.serno},${dr.code}\n`;
+  });
+
+  csv += '\nGREASE PUMPS\n';
+  csv += 'PUMP Nº,CODE,MODEL,P.NO,S.NO\n';
+  d.pumps.forEach((p, i) => {
+    csv += `${i+1},${p.code},${p.model},${p.pno},${p.sno}\n`;
+  });
+
+  download('RF_' + (d.serial || 'new') + '_' + (d.date || 'today') + '.csv', csv, 'text/csv');
+  showToast('CSV downloaded');
+}
+
+function exportExcel() {
+  const d = collectData();
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Register (matches your existing Excel columns)
+  const regRow = {
+    'SERIAL Nº': d.serial,
+    'CUSTOMER': d.customer,
+    'DATE': d.date,
+    'ORDER Nº': d.order,
+    'COUNTRY': d.country,
+    'MACHINE TYPE': d.type,
+    'NORMAL / PLUS': d.plus,
+    'SPINDLES NUMBER': d.spindles,
+    'VOLTAGE': d.voltage,
+    'Hz': d.hz,
+    'TRF TYPE': d.trf,
+    'TRANSPORT': d.transport,
+    'DONE BY': d.doneby,
+    'PC SERIAL Nº': d.pc_serial,
+    'PC MODEL': d.pc_model,
+    'ID TEAM VIEWER': d.pc_tv_id,
+    'PASSWORD TEAM VIEWER': d.pc_tv_pass,
+    'KEYBOARD LANGUAGE': d.pc_keyboard,
+    'RAM': d.pc_ram,
+    'WINDOWS VERSION': d.pc_windows,
+    'DEVICE NAME': d.pc_device_name,
+    'VB VERSION ROV': d.pc_vb_rov,
+    'VB VERSION CX': d.pc_vb_cx,
+    'VB VERSION PLC': d.pc_vb_plc,
+    'VERSION ENGINEER': d.pc_vb_eng,
+    'LICENSE CX-ONE': d.cx_license,
+    'MOTOR M1': d.motor_m1,
+    'MOTOR M2 TYPE': d.motor_m2_type,
+    'IB SENSOR VERSION': d.ib_sensor_ver + (d.ib_sensor_other ? ' - '+d.ib_sensor_other : ''),
+    'IB CENTRAL VERSION': d.ib_central_ver,
+    'IB CENTRAL S/N': d.ib_central_sn,
+    'IB MODULE VERSION': d.ib_module_ver,
+    'BQ13/14 TYPE': d.bq_type + (d.bq_other ? ' - '+d.bq_other : ''),
+    'RC K2 VERSION': d.rc_k2,
+    'BRAKE RESISTANCE': d.brake_res,
+    'MOTOR M2': d.motor_m2,
+    'MOTOR M4': d.motor_m4,
+    'MOTOR M9': d.motor_m9,
+    'REDUCTOR': d.motor_reductor,
+    'OBSERVATIONS': d.observations,
+  };
+  const wsReg = XLSX.utils.json_to_sheet([regRow]);
+  XLSX.utils.book_append_sheet(wb, wsReg, 'Register');
+
+  // Sheet 2: Checks
+  const allChecks = [...CHECKS.pc, ...CHECKS.rf, ...CHECKS.rfscreen, ...CHECKS.trf, ...CHECKS.trfcables, ...CHECKS.trfmech];
+  const checkRows = allChecks.map(c => ({
+    'Section': c.id.substring(0,2).toUpperCase(),
+    'ID': c.id,
+    'Description (CA)': c.ca,
+    'Description (EN)': c.en,
+    'Status': d.checks[c.id] || '',
+  }));
+  const wsChecks = XLSX.utils.json_to_sheet(checkRows);
+  XLSX.utils.book_append_sheet(wb, wsChecks, 'Checks');
+
+  // Sheet 3: Drivers
+  const driverRows = d.drivers.map((dr, i) => ({
+    'Driver Nº': i + 1,
+    'Type': dr.type,
+    'Id No': dr.idno,
+    'Prod No': dr.prodno,
+    'Ser No': dr.serno,
+    'Code': dr.code,
+  }));
+  const wsDrivers = XLSX.utils.json_to_sheet(driverRows);
+  XLSX.utils.book_append_sheet(wb, wsDrivers, 'Drivers');
+
+  // Sheet 4: Pumps
+  const pumpRows = d.pumps.map((p, i) => ({
+    'Pump Nº': i + 1,
+    'Code': p.code,
+    'Model': p.model,
+    'P.No': p.pno,
+    'S.No': p.sno,
+  }));
+  const wsPumps = XLSX.utils.json_to_sheet(pumpRows);
+  XLSX.utils.book_append_sheet(wb, wsPumps, 'Grease Pumps');
+
+  XLSX.writeFile(wb, 'RF_' + (d.serial || 'new') + '_' + (d.date || 'today') + '.xlsx');
+  showToast('Excel downloaded');
+}
+
+function download(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
