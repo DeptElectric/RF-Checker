@@ -508,7 +508,7 @@ const CHECKS = {
     { id:'pc4', ca:'Llicència CX-ONE (Omron)', en:'CX-ONE (Omron) license' },
     { id:'pc5', ca:'Windows — Device Name', en:'Windows version and device name', special:'windows' },
     { id:'pc6', ca:'Crear carpetes D:\\DATABASE, INSTAL\\VB, PLC, DATA', en:'Create folders D:\\DATABASE, INSTAL\\VB, PLC, DATA' },
-    { id:'pc7', ca:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / GW: 192.168.250.254', en:'IP Local: 192.168.250.101 / Mask: 255.255.255.0 / DNS: 192.168.250.254 / Gateway: 192.168.250.254' },
+    { id:'pc7', ca:'IP Local / Mask: 255.255.255.0 / DNS: 192.168.250.254 / GW: 192.168.250.254', en:'IP Local / Mask: 255.255.255.0 / DNS: 192.168.250.254 / Gateway: 192.168.250.254', special:'ip_local' },
     { id:'pc8', ca:'IP targeta extra: automàtica', en:'Extra card IP: automatic' },
     { id:'pc9', ca:'COMs: Transfer / Individual detector', en:'COM ports: Transfer / Individual detector', special:'com_ports' },
     { id:'pc10', ca:'Calibrar pantalla tàctil', en:'Touch screen calibration done' },
@@ -518,7 +518,6 @@ const CHECKS = {
     { id:'pc14', ca:'Verificar dades client, IP i fons pantalla a escriptori', en:'Customer data, IP and wallpaper visible on desktop' },
     { id:'pc15', ca:'Activar Visual Studio Community 2019', en:'Visual Studio Community 2019 activated' },
     { id:'pc15b', ca:'Carregar tots els programes màquina. Accés directe VB a escriptori i inici', en:'Load all machine/installation programs. VB shortcut to Desktop and Startup' },
-    { id:'pc16', ca:'Treure actualitzacions Windows 10 versió 101A (2 discs)', en:'Windows 10 updates removed v101A (both hard drives)' },
     { id:'pc17', ca:'Crear imatge de HD1 a HD2', en:'Image created from HD1 to HD2' },
     { id:'pc18', ca:'Enganxar etiquetes SAI', en:'UPS stickers applied' },
     { id:'pc19', ca:'Treure i tornar corrent → Comprova DB: Device Value = Factory Settings Value', en:'Switch off/on → DB check: Device Value matches Factory Settings Value' },
@@ -754,7 +753,7 @@ function renderChecks(containerId, items) {
           ${item.ca}
           <div class="en">${item.en}</div>
           <div style="display:flex;gap:6px;margin-top:6px">
-            <select id="windows-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+            <select id="windows-select" onclick="event.stopPropagation()" onchange="(function(s){var dn=document.getElementById('device-name');if(s.value==='Windows 10'){dn.value='PC-CONTROL-101';}else{dn.value='';}})(this);event.stopPropagation()"
               style="flex:1;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
               <option value="">Windows...</option>
               <option>Windows 10</option>
@@ -783,6 +782,27 @@ function renderChecks(containerId, items) {
               style="flex:1;min-width:80px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
               ${comOpts}
             </select>
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'ip_local') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
+            <select id="ip-local-select" onclick="event.stopPropagation()"
+              onchange="(function(s){var o=document.getElementById('ip-local-other');if(s.value==='Altres'){o.style.display='block';o.focus();}else{o.style.display='none';}})(this);event.stopPropagation()"
+              style="flex:1;min-width:160px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">IP Local...</option>
+              <option value="192.168.250.101">192.168.250.101</option>
+              <option value="192.168.5.101">192.168.5.101</option>
+              <option value="Altres">Altres</option>
+            </select>
+            <input type="text" id="ip-local-other" inputmode="decimal" placeholder="Escriu IP"
+              onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="display:none;flex:1;min-width:140px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
           </div>
         </div>`;
       div.addEventListener('click', () => toggleCheck(item.id));
@@ -1790,6 +1810,7 @@ function collectData() {
     pc_tv_id: g('pc-tv-id'),
     com_transfer: (document.getElementById('com-transfer')||{}).value||'',
     com_individual: (document.getElementById('com-individual')||{}).value||'',
+    pc_ip_local: (function(){var s=document.getElementById('ip-local-select');if(!s)return '';if(s.value==='Altres')return (document.getElementById('ip-local-other')||{}).value||'';return s.value;})(),
     pc_tv_pass: g('pc-tv-pass'),
     pc_keyboard: (document.getElementById('keyboard-select')||{}).value||'',
     pc_ram: (document.getElementById('ram-select')||{}).value||'',
@@ -1844,6 +1865,7 @@ function shareFile() {
       'ID TEAM VIEWER': d.pc_tv_id,
     'COM TRANSFER': d.com_transfer,
     'COM INDIVIDUAL': d.com_individual,
+    'IP LOCAL': d.pc_ip_local,
     'PASSWORD TEAM VIEWER': d.pc_tv_pass,
     'KEYBOARD LANGUAGE': d.pc_keyboard,
     'RAM': d.pc_ram,
@@ -1966,6 +1988,7 @@ function exportExcel() {
     'ID TEAM VIEWER': d.pc_tv_id,
     'COM TRANSFER': d.com_transfer,
     'COM INDIVIDUAL': d.com_individual,
+    'IP LOCAL': d.pc_ip_local,
     'PASSWORD TEAM VIEWER': d.pc_tv_pass,
     'KEYBOARD LANGUAGE': d.pc_keyboard,
     'RAM': d.pc_ram,
@@ -2052,4 +2075,4 @@ function showToast(msg) {
 }
 </script>
 </body>
-</html>
+</htm
