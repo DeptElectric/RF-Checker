@@ -1038,12 +1038,6 @@ async function handleFileOCR(e) {
 
     parseOCRResult(ocrTarget, text);
 
-    // DIAGNOSTIC: show pedido line under status
-    if (ocrTarget === 'order-doc' && statusEl) {
-      const pedDiagLine = text.split('\n').find(l => /[Pp]edido/i.test(l));
-      const msg = pedDiagLine ? '🔍 "' + pedDiagLine.trim() + '"' : '🔍 "Pedido" no trobat';
-      statusEl.innerHTML += '<br><small style="color:orange;word-break:break-all">' + msg + '</small>';
-    }
 
     // Add quality hint if status was not set to ✓ by parseOCRResult
     const curStatus = statusEl ? statusEl.textContent : '';
@@ -1195,22 +1189,25 @@ function parseOCRResult(target, text) {
     //    → customer = name after account number, before long gap
     //    → country  = words after the long gap (end of line)
 
-    // Order Nº — multiple strategies, most specific first
-    // 1. Between "No.:" and "Fecha" (most reliable anchor)
-    // 2. Any word "No" (with variants) followed by digits near "Pedido"
-    // 3. Standalone 5-digit number on same line as "Pedido"
-    const pedidoLine = text.split('\n').find(l => /[Pp]edido/i.test(l)) || '';
-    const pedidoM = pedidoLine.match(/[Nn][o°º]?\.?\s*:?\s*(\d{4,6})\s/)
-                 || pedidoLine.match(/[Nn][o°º]?\.?\s*:?\s*(\d{4,6})$/)
-                 || pedidoLine.match(/\b(\d{5,6})\b/);
-    if (pedidoM) forceSet('f-order', pedidoM[1]);
+    // Order Nº — "Pedido No.: 19315" may not appear in OCR (title area skipped)
+    // Order Nº strategies (most specific first):
+    // 1. Explicit "Pedido No.: NNNNN" anywhere in text
+    // 2. 5-digit number on same line as "MECHERAS" or "ADR" (title line)
+    // 3. "Confirmacion pedido NNNNN" as last fallback
+    const lines = text.split('\n');
+    const pedidoNoM = fullText.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})/);
+    const titleLine = lines.find(l => /MECHERAS|[Mm]echeras|ADR|A\.D\.R/i.test(l) && /\d{5}/.test(l));
+    const titleM    = titleLine ? titleLine.match(/\b(\d{5,6})\b/) : null;
+    const confirmM  = fullText.match(/[Cc]onfirmaci[oó]n?\s+[Pp]edido\s+(\d{4,6})/);
+    if (pedidoNoM)   forceSet('f-order', pedidoNoM[1]);
+    else if (titleM) forceSet('f-order', titleM[1]);
+    else if (confirmM) forceSet('f-order', confirmM[1]);
 
     // Serial Nº — first number after "Matrículas E-Jet" / "Matriculas E-Jet"
     const matM = text.match(/[Mm]atr[ií]culas?\s+E[-\s]?[Jj]et[^\d]{0,6}(\d{4})/);
     if (matM) forceSet('f-serial', matM[1]);
 
     // Customer & Country from "Cliente Final" line
-    const lines = text.split('\n');
     const clienteLine = lines.find(l => /[Cc]liente\s*[Ff]inal/i.test(l));
     if (clienteLine) {
       // Customer Nº — digits right after "Cliente Final:(OT)"
