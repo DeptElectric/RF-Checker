@@ -142,7 +142,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="topbar-title">RF Checker</div>
+  <div class="topbar-title">RF Checker <span style="font-size:10px;font-weight:400;opacity:0.6">v1.0</span></div>
   <div class="progress-pill" id="progress-label">0 / 0</div>
 </div>
 
@@ -505,6 +505,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 
 <script>
+// ============================================================
+// VERSION
+// ============================================================
+const APP_VERSION = 'v1.0';
+// Update topbar version dynamically so it always matches this constant
+document.addEventListener('DOMContentLoaded', () => {
+  const vEl = document.querySelector('.topbar-title span');
+  if (vEl) vEl.textContent = APP_VERSION;
+});
+
 // ============================================================
 // DATA
 // ============================================================
