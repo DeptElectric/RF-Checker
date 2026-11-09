@@ -208,9 +208,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <label>Spindles</label>
         <select id="f-spindles">
           <option value="">Select...</option>
-          <option>64</option><option>80</option><option>96</option>
-          <option>112</option><option>128</option><option>144</option>
-          <option>160</option><option>192</option>
+          <option>36</option><option>54</option><option>72</option>
+          <option>90</option><option>108</option><option>126</option>
+          <option>144</option><option>162</option><option>180</option>
+          <option>198</option><option>216</option><option>234</option>
+          <option>252</option>
         </select>
       </div>
       <div class="info-field">
@@ -1182,8 +1184,8 @@ function parseOCRResult(target, text) {
     //    → customer = name after account number, before long gap
     //    → country  = words after the long gap (end of line)
 
-    // Order Nº
-    const pedidoM = text.match(/[Pp]edido\s*[Nn][oº°\.]*[^\d]{0,6}(\d{4,6})/);
+    // Order Nº — "Pedido No.: 19315" / "Pedido No. 19315" / "Pedido No 19315"
+    const pedidoM = text.match(/[Pp]edido\s*[Nn][o°º\.]*\s*:?\s*(\d{4,6})/);
     if (pedidoM) forceSet('f-order', pedidoM[1]);
 
     // Serial Nº — first number after "Matrículas E-Jet" / "Matriculas E-Jet"
@@ -1246,18 +1248,18 @@ function parseOCRResult(target, text) {
     if (/ADR\s*PLUS|PLUS/i.test(fullText)) setSelectByValue('f-plus', 'Plus');
     else setSelectByValue('f-plus', 'Normal');
 
-    // Spindles
-    const husosM = fullText.match(/[Hh]usos[^\d]{0,5}(\d{2,3})/);
-    if (husosM) setSelectByValue('f-spindles', husosM[1]);
+    // Spindles — "Nº Husos  198" / "N Husos 198" / "Husos 198"
+    const husosM = fullText.match(/[Nn][°º]?\s*[Hh]usos\s*(\d{2,3})|[Hh]usos\s+(\d{2,3})/);
+    if (husosM) setSelectByValue('f-spindles', husosM[1] || husosM[2]);
 
     // Voltage
     const voltM = fullText.match(/[Vv]olts?\s*[:\s]*(\d{3})/);
     if (voltM) setSelectByValue('f-voltage', voltM[1]);
     else { const vv = fullText.match(/\b(380|400|415|440|460)\b/); if (vv) setSelectByValue('f-voltage', vv[1]); }
 
-    // Hz
-    const hzM = fullText.match(/\b(50|60)\s*[Hh]z/);
-    if (hzM) setSelectByValue('f-hz', hzM[1]);
+    // Hz — "Hz. 50" (doc format) or "50 Hz" or "Hz 50"
+    const hzM = fullText.match(/[Hh]z\.?\s*(50|60)|\b(50|60)\s*[Hh]z/);
+    if (hzM) setSelectByValue('f-hz', hzM[1] || hzM[2]);
 
     // TRF type — look for "Transfer  Simple/Doble/Triple" pattern; skip "Transfer NO"
     const trfLine = lines.find(l => /[Tt]ipo\s+[Tt]ransfer|[Tt]ransfer\s+[A-Za-z]/i.test(l));
