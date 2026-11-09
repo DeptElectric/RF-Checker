@@ -184,6 +184,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <input type="text" id="f-customer" placeholder="Customer name">
       </div>
       <div class="info-field">
+        <label>Customer Nº</label>
+        <input type="text" id="f-customer-no" placeholder="00012999">
+      </div>
+      <div class="info-field">
         <label>Order Nº</label>
         <input type="text" id="f-order">
       </div>
@@ -1184,8 +1188,10 @@ function parseOCRResult(target, text) {
     //    → customer = name after account number, before long gap
     //    → country  = words after the long gap (end of line)
 
-    // Order Nº — "Pedido No.: 19315" / "Pedido No. 19237" / "Pedido No 19315"
-    const pedidoM = text.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})/);
+    // Order Nº — anchor on Fecha: "Pedido No.: 19315  Fecha" (most reliable)
+    // fallback: any "Pedido No" followed by digits
+    const pedidoM = text.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})\s+[Ff]echa/)
+                 || text.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})/);
     if (pedidoM) forceSet('f-order', pedidoM[1]);
 
     // Serial Nº — first number after "Matrículas E-Jet" / "Matriculas E-Jet"
@@ -1196,6 +1202,9 @@ function parseOCRResult(target, text) {
     const lines = text.split('\n');
     const clienteLine = lines.find(l => /[Cc]liente\s*[Ff]inal/i.test(l));
     if (clienteLine) {
+      // Customer Nº — digits right after "Cliente Final:(OT)"
+      const cnoM = clienteLine.match(/[Cc]liente\s*[Ff]inal[^0-9]{0,20}(\d{5,9})/);
+      if (cnoM) forceSet('f-customer-no', cnoM[1]);
       // Line format: "Cliente Final (OT)   00012999   FILSPEC          UNITED STATES O"
       // Step 1: remove everything up to and including the account number
       //   - Remove "Cliente Final" + optional "(OT)" + whitespace
@@ -1799,6 +1808,7 @@ function collectData() {
     serial: g('f-serial'),
     verifiedby: g('f-verifiedby'),
     customer: g('f-customer'),
+    customer_no: g('f-customer-no'),
     date: g('f-date'),
     order: g('f-order'),
     type: g('f-type'),
@@ -1939,7 +1949,7 @@ function shareFile() {
     const wb = XLSX.utils.book_new();
     const regRow = {
       'SERIAL Nº': d.serial,
-    'VERIFIED BY': d.verifiedby, 'CUSTOMER': d.customer, 'DATE': d.date,
+    'VERIFIED BY': d.verifiedby, 'CUSTOMER': d.customer, 'CUSTOMER Nº': d.customer_no, 'DATE': d.date,
       'ORDER Nº': d.order, 'COUNTRY': d.country, 'MACHINE TYPE': d.type,
       'NORMAL / PLUS': d.plus, 'SPINDLES NUMBER': d.spindles,
       'VOLTAGE': d.voltage, 'Hz': d.hz, 'TRF TYPE': d.trf,
@@ -2054,7 +2064,7 @@ function exportExcel() {
   // Sheet 1: Register (matches your existing Excel columns)
   const regRow = {
     'SERIAL Nº': d.serial,
-    'CUSTOMER': d.customer,
+    'CUSTOMER': d.customer, 'CUSTOMER Nº': d.customer_no,
     'DATE': d.date,
     'ORDER Nº': d.order,
     'COUNTRY': d.country,
