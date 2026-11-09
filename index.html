@@ -1184,8 +1184,8 @@ function parseOCRResult(target, text) {
     //    → customer = name after account number, before long gap
     //    → country  = words after the long gap (end of line)
 
-    // Order Nº — "Pedido No.: 19315" / "Pedido No. 19315" / "Pedido No 19315"
-    const pedidoM = text.match(/[Pp]edido\s*[Nn][o°º\.]*\s*:?\s*(\d{4,6})/);
+    // Order Nº — "Pedido No.: 19315" / "Pedido No. 19237" / "Pedido No 19315"
+    const pedidoM = text.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})/);
     if (pedidoM) forceSet('f-order', pedidoM[1]);
 
     // Serial Nº — first number after "Matrículas E-Jet" / "Matriculas E-Jet"
