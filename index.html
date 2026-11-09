@@ -1038,14 +1038,11 @@ async function handleFileOCR(e) {
 
     parseOCRResult(ocrTarget, text);
 
-    // DIAGNOSTIC: alert with raw OCR line containing "Pedido"
-    if (ocrTarget === 'order-doc') {
-      const diagLines = text.split('\n').filter(l => /edido/i.test(l));
-      if (diagLines.length > 0) {
-        alert('🔍 OCR Pedido línies:\n' + diagLines.map(l => '"' + l.trim() + '"').join('\n'));
-      } else {
-        alert('🔍 "Pedido" NO trobat al text OCR.\nPrimeres línies:\n' + text.split('\n').slice(0,5).join('\n'));
-      }
+    // DIAGNOSTIC: show pedido line under status
+    if (ocrTarget === 'order-doc' && statusEl) {
+      const pedDiagLine = text.split('\n').find(l => /[Pp]edido/i.test(l));
+      const msg = pedDiagLine ? '🔍 "' + pedDiagLine.trim() + '"' : '🔍 "Pedido" no trobat';
+      statusEl.innerHTML += '<br><small style="color:orange;word-break:break-all">' + msg + '</small>';
     }
 
     // Add quality hint if status was not set to ✓ by parseOCRResult
@@ -1198,10 +1195,14 @@ function parseOCRResult(target, text) {
     //    → customer = name after account number, before long gap
     //    → country  = words after the long gap (end of line)
 
-    // Order Nº — anchor on Fecha: "Pedido No.: 19315  Fecha" (most reliable)
-    // fallback: any "Pedido No" followed by digits
-    const pedidoM = text.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})\s+[Ff]echa/)
-                 || text.match(/[Pp]edido\s+[Nn][o°º]*\.?\s*:?\s*(\d{4,6})/);
+    // Order Nº — multiple strategies, most specific first
+    // 1. Between "No.:" and "Fecha" (most reliable anchor)
+    // 2. Any word "No" (with variants) followed by digits near "Pedido"
+    // 3. Standalone 5-digit number on same line as "Pedido"
+    const pedidoLine = text.split('\n').find(l => /[Pp]edido/i.test(l)) || '';
+    const pedidoM = pedidoLine.match(/[Nn][o°º]?\.?\s*:?\s*(\d{4,6})\s/)
+                 || pedidoLine.match(/[Nn][o°º]?\.?\s*:?\s*(\d{4,6})$/)
+                 || pedidoLine.match(/\b(\d{5,6})\b/);
     if (pedidoM) forceSet('f-order', pedidoM[1]);
 
     // Serial Nº — first number after "Matrículas E-Jet" / "Matriculas E-Jet"
