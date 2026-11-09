@@ -508,7 +508,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 // ============================================================
 // VERSION
 // ============================================================
-const APP_VERSION = 'v1.0';
+const APP_VERSION = 'v1.1';
 // Update topbar version dynamically so it always matches this constant
 document.addEventListener('DOMContentLoaded', () => {
   const vEl = document.querySelector('.topbar-title span');
@@ -523,14 +523,14 @@ const CHECKS = {
   pc: [
     { id:'pc1', ca:'Comprovar llengua O.S. (Windows): ENGLISH UK', en:'OS language: English (United Kingdom)' },
     { id:'pc2', ca:'Llengua menús: ENGLISH UK', en:'Menu language: English (United Kingdom)' },
-    { id:'pc3', ca:'RAM Cervoz instal·lada', en:'RAM Cervoz installed', special:'ram' },
-    { id:'pc4', ca:'Llicència CX-ONE (Omron)', en:'CX-ONE (Omron) license' },
+    { id:'pc3', ca:'RAM instal·lada', en:'RAM installed', special:'ram' },
     { id:'pc5', ca:'Windows — Device Name', en:'Windows version and device name', special:'windows' },
     { id:'pc6', ca:'Crear carpetes D:\\DATABASE, INSTAL\\VB, PLC, DATA', en:'Create folders D:\\DATABASE, INSTAL\\VB, PLC, DATA' },
     { id:'pc7', ca:'IP Local / Mask: 255.255.255.0 / DNS: 192.168.250.254 / GW: 192.168.250.254', en:'IP Local / Mask: 255.255.255.0 / DNS: 192.168.250.254 / Gateway: 192.168.250.254', special:'ip_local' },
-    { id:'pc8', ca:'IP targeta extra: automàtica', en:'Extra card IP: automatic' },
+    { id:'pc8', ca:'IP targeta extra', en:'Extra network card IP', special:'ip_extra' },
     { id:'pc9', ca:'COMs: Transfer / Individual detector', en:'COM ports: Transfer / Individual detector', special:'com_ports' },
     { id:'pc10', ca:'Calibrar pantalla tàctil', en:'Touch screen calibration done' },
+    { id:'pc10b', ca:'Verificar configuració Right click desactivada', en:'Right click disabled verified' },
     { id:'pc11', ca:'Conectar SAI i configurar paràmetres apagat', en:'UPS connected and shutdown parameters configured' },
     { id:'pc12', ca:'Canviar configuració regional (país client)', en:'Regional settings changed to customer country', special:'regional' },
     { id:'pc13', ca:'Comprovar idioma teclat', en:'Keyboard language checked', special:'keyboard' },
@@ -753,12 +753,24 @@ function renderChecks(containerId, items) {
         <div class="check-text" style="flex:1">
           ${item.ca}
           <div class="en">${item.en}</div>
-          <select id="ram-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
-            style="margin-top:6px;width:100%;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
-            <option value="">Select...</option>
-            <option>8 GB</option>
-            <option>16 GB</option>
-          </select>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            <select id="ram-select" onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="flex:1;min-width:100px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">GB...</option>
+              <option>8 GB</option>
+              <option>16 GB</option>
+            </select>
+            <select id="ram-brand" onclick="event.stopPropagation()"
+              onchange="(function(s){document.getElementById('ram-brand-other').style.display=s.value==='Altres'?'block':'none';})(this);event.stopPropagation()"
+              style="flex:1;min-width:100px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">Marca...</option>
+              <option>Cervoz</option>
+              <option>Transcend</option>
+              <option value="Altres">Altres</option>
+            </select>
+            <input type="text" id="ram-brand-other" placeholder="Model RAM" onclick="event.stopPropagation()"
+              style="display:none;flex:1;min-width:120px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+          </div>
         </div>`;
       div.addEventListener('click', () => toggleCheck(item.id));
     } else if (item.special === 'windows') {
@@ -821,6 +833,27 @@ function renderChecks(containerId, items) {
             </select>
             <input type="text" id="ip-local-other" inputmode="decimal" placeholder="Escriu IP"
               onclick="event.stopPropagation()" onchange="event.stopPropagation()"
+              style="display:none;flex:1;min-width:140px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+          </div>
+        </div>`;
+      div.addEventListener('click', () => toggleCheck(item.id));
+    } else if (item.special === 'ip_extra') {
+      div.innerHTML = `
+        <div class="check-box"><svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="check-text" style="flex:1">
+          ${item.ca}
+          <div class="en">${item.en}</div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
+            <select id="ip-extra-select" onclick="event.stopPropagation()"
+              onchange="(function(s){var o=document.getElementById('ip-extra-manual');o.style.display=s.value==='Manual'?'block':'none';})(this);event.stopPropagation()"
+              style="flex:1;min-width:140px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
+              <option value="">Selecciona...</option>
+              <option>No n'hi ha</option>
+              <option>Automàtica</option>
+              <option value="Manual">Manual</option>
+            </select>
+            <input type="text" id="ip-extra-manual" inputmode="decimal" placeholder="Escriu IP"
+              onclick="event.stopPropagation()"
               style="display:none;flex:1;min-width:140px;border:0.5px solid var(--c-border-strong);border-radius:8px;padding:7px 8px;font-size:13px;background:var(--c-bg);color:var(--c-text)">
           </div>
         </div>`;
@@ -1848,6 +1881,8 @@ function collectData() {
     pc_tv_pass: g('pc-tv-pass'),
     pc_keyboard: (document.getElementById('keyboard-select')||{}).value||'',
     pc_ram: (document.getElementById('ram-select')||{}).value||'',
+    pc_ram_brand: (function(){var s=document.getElementById('ram-brand');if(!s)return '';if(s.value==='Altres')return (document.getElementById('ram-brand-other')||{}).value||'';return s.value;})(),
+    pc_ip_extra: (function(){var s=document.getElementById('ip-extra-select');if(!s)return '';if(s.value==='Manual')return (document.getElementById('ip-extra-manual')||{}).value||'';return s.value;})(),
     pc_windows: (document.getElementById('windows-select')||{}).value||'',
     pc_device_name: (document.getElementById('device-name')||{}).value||'',
     pc_vb_rov: g('pc-vb-rov'),
@@ -1979,7 +2014,8 @@ function shareFile() {
     'IP LOCAL': d.pc_ip_local,
     'PASSWORD TEAM VIEWER': d.pc_tv_pass,
     'KEYBOARD LANGUAGE': d.pc_keyboard,
-    'RAM': d.pc_ram,
+    'RAM': d.pc_ram, 'RAM BRAND': d.pc_ram_brand,
+    'IP EXTRA CARD': d.pc_ip_extra,
     'WINDOWS VERSION': d.pc_windows,
     'DEVICE NAME': d.pc_device_name,
       'VERSION ROV': d.pc_vb_rov, 'VERSION CX': d.pc_vb_cx,
@@ -2102,7 +2138,8 @@ function exportExcel() {
     'IP LOCAL': d.pc_ip_local,
     'PASSWORD TEAM VIEWER': d.pc_tv_pass,
     'KEYBOARD LANGUAGE': d.pc_keyboard,
-    'RAM': d.pc_ram,
+    'RAM': d.pc_ram, 'RAM BRAND': d.pc_ram_brand,
+    'IP EXTRA CARD': d.pc_ip_extra,
     'WINDOWS VERSION': d.pc_windows,
     'DEVICE NAME': d.pc_device_name,
     'VB VERSION ROV': d.pc_vb_rov,
